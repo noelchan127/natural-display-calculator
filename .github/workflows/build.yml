@@ -14,8 +14,16 @@ jobs:
   web:
     name: Web page (single offline file)
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+      - name: Read app version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; else v="$(tr -d '[:space:]' < VERSION)"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "App version: $v"
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -52,12 +60,11 @@ jobs:
           workspaces: windows/src-tauri -> target
       - run: npm ci
         working-directory: windows
-      - name: Set app version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Set app version
         shell: pwsh
         working-directory: windows/src-tauri
         run: |
-          $v = '${{ github.ref_name }}'.TrimStart('v')
+          $v = '${{ needs.web.outputs.version }}'
           $c = Get-Content tauri.conf.json -Raw | ConvertFrom-Json
           $c.version = $v
           $c | ConvertTo-Json -Depth 20 | Set-Content tauri.conf.json -Encoding utf8
@@ -101,9 +108,8 @@ jobs:
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 secret not set; the APK is signed with a throwaway debug key and cannot update an installed release build."
           fi
-      - name: Set app version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "APP_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Set app version
+        run: echo "APP_VERSION=${{ needs.web.outputs.version }}" >> "$GITHUB_ENV"
       - name: Build APK
         working-directory: android
         env:
@@ -124,22 +130,52 @@ jobs:
 
   release:
     name: Publish release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A release is made for each new version: change VERSION and push to main, or push a v* tag.
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: [web, windows, android]
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      VERSION: ${{ needs.web.outputs.version }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
-      - name: Rename offline page
-        run: mv dist/web/index.html "dist/web/Natural-Display-Calculator-offline.html"
-      - uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-          files: |
-            dist/windows/*
-            dist/android/*
-            dist/web/*
+      - name: Name the files
+        run: |
+          mkdir rel
+          cp dist/windows/*-setup.exe "rel/Natural-Display-Calculator-$VERSION-Windows-setup.exe"
+          cp dist/windows/*portable*.exe "rel/Natural-Display-Calculator-$VERSION-Windows-portable.exe"
+          cp dist/android/*.apk "rel/Natural-Display-Calculator-$VERSION-Android.apk"
+          cp dist/web/index.html "rel/Natural-Display-Calculator-$VERSION-offline.html"
+          ls -la rel
+      - name: Create or update the release
+        run: |
+          tag="v$VERSION"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              gh release upload "$tag" rel/* --clobber
+            else
+              echo "Release $tag already exists; change VERSION to publish a new one."
+            fi
+            exit 0
+          fi
+          cat > notes.md <<'EOF'
+          ## Downloads
+
+          | File | For |
+          |---|---|
+          | `…-Windows-setup.exe` | Windows 10 or 11, installs for your account (no admin rights needed) |
+          | `…-Windows-portable.exe` | Windows 10 or 11, runs without installing |
+          | `…-Android.apk` | Android 7.0 or newer |
+          | `…-offline.html` | Any browser, no install |
+
+          The Windows files are not code-signed, so SmartScreen warns the first time: choose **More info**, then **Run anyway**.
+          On Android, allow installs from your browser or file manager when prompted. The app updates in place over earlier versions.
+          EOF
+          sed -i 's/^          //' notes.md
+          gh release create "$tag" rel/* --target "$GITHUB_SHA" --title "Natural Display Calculator $VERSION" --notes-file notes.md --generate-notes
 
   builds-branch:
     name: Update builds branch
