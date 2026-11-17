@@ -140,3 +140,33 @@ jobs:
             dist/windows/*
             dist/android/*
             dist/web/*
+
+  builds-branch:
+    name: Update builds branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [web, windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Push latest builds to the 'builds' branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir site && cd site
+          cp ../dist/windows/* ../dist/android/* .
+          cp ../dist/web/index.html "Natural-Display-Calculator-offline.html"
+          cat > README.md <<EOF
+          # Latest builds
+
+          Built from commit ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC') by run #${GITHUB_RUN_NUMBER}.
+          This branch is replaced on every push to main.
+          EOF
+          sed -i 's/^          //' README.md
+          git init -q -b builds
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Builds from ${GITHUB_SHA::7} (run #${GITHUB_RUN_NUMBER})"
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" builds

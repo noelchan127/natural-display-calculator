@@ -11,7 +11,7 @@ A scientific and graphing calculator with natural (textbook) display, plus step-
 
 ## Getting the apps
 
-Every push to `main` builds all three; download them from the run's **Artifacts** on the Actions tab.
+Every push to `main` builds all three. Download them from the run's **Artifacts** on the Actions tab, or from the [`builds` branch](../../tree/builds), which always holds the latest set.
 Pushing a tag such as `v1.0.1` also publishes them as a GitHub Release.
 
 - **Windows:** `Natural Display Calculator_<version>_x64-setup.exe` installs for the current user (no admin needed). The `(portable)` exe runs without installing. Both need the WebView2 runtime, which Windows 10 and 11 normally already have; the installer adds it if missing. The apps are not code-signed, so Windows SmartScreen warns the first time: choose **More info → Run anyway**.
