@@ -137,6 +137,12 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .kfrac{display:inline-flex;flex-direction:column;align-items:center;gap:2px}
 .kfrac i{width:7px;height:6px;border:1px solid currentColor;display:block}
 .kfrac b{width:13px;border-top:1.5px solid currentColor;display:block}
+.kfrac.sm{gap:1px;vertical-align:middle;margin-left:2px}
+.kfrac.sm i{width:5px;height:4px}
+.kfrac.sm b{width:9px;border-top-width:1px}
+.k .ph{display:inline-block;box-sizing:border-box;width:.56em;height:.66em;border:1.2px solid currentColor;border-radius:1.5px;vertical-align:-.05em;margin:0 .05em;font-style:normal}
+.k sup .ph,.k sub .ph{border-width:1px;width:max(.72em,5px);height:max(.82em,6px);vertical-align:0}
+.khide{display:none;align-self:center;border:1px solid var(--line);background:var(--key-mod);border-radius:999px;padding:3px 14px;font-size:12px;font-weight:600;cursor:pointer;margin:-2px 0 0}
 .kmat{display:inline-grid;grid-template-columns:5px 5px;gap:2px;padding:1px 4px;border-left:1.5px solid currentColor;border-right:1.5px solid currentColor}
 .kmat i{width:5px;height:5px;border:1px solid currentColor;display:block}
 
@@ -190,6 +196,33 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 @media (max-width:480px){.stat{grid-template-columns:1fr}}
 
 @media (max-width:360px){.kgrid.sci .k .k1{font-size:12px}}
+/* Phones and portrait tablets: fit everything on one screen with the keypad always in reach.
+   On the Graph and Solve tabs the keypad opens when you tap an entry box and can be hidden again. */
+@media (max-width:899px){
+  .app{height:100%;min-height:480px;padding:8px 10px 10px;gap:8px;grid-template-rows:auto minmax(0,1fr) auto}
+  .screen{min-height:0}
+  .hist{min-height:36px;max-height:none}
+  .status{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .status::-webkit-scrollbar{display:none}
+  .status .vars{min-width:40px}
+  .status .chip,.status .linkbtn{flex:none}
+  .graph{min-height:0;overflow-y:auto}
+  .plotwrap{min-height:150px}
+  .keys{padding:8px;gap:6px}
+  .k{height:clamp(30px,5vh,44px);height:clamp(30px,5dvh,44px)}
+  .kgrid.num .k{height:clamp(34px,5.8vh,52px);height:clamp(34px,5.8dvh,52px)}
+  .app[data-view="graph"]:not(.kbd) .keys,.app[data-view="solve"]:not(.kbd) .keys{display:none}
+  .app[data-view="graph"] .khide,.app[data-view="solve"] .khide{display:block}
+  .smath.res{font-size:19px}
+  .app.kbd .fnbar .note{display:none}
+  .app.kbd .fn .ed{min-height:30px;padding:2px}
+}
+@media (max-width:600px){
+  h1{display:none}
+  .tabs{margin-left:0;flex:1}
+  .tabs button{flex:1;padding:7px 6px}
+}
+@media (hover:none){.hint{display:none}}
 @media (min-width:900px){
   .app{max-width:none;height:100%;min-height:700px;grid-template-columns:minmax(380px,440px) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;grid-template-areas:"head head" "screen graph" "keys graph"}
   .app[data-view] .screen,.app[data-view] .graph{display:flex}
@@ -259,7 +292,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
       <span class="chip on" id="hypChip" hidden>hyp</span>
       <span class="chip on" id="stoChip" hidden>STO → pick A–D, x, y or M</span>
       <span class="vars" id="vars"></span>
-      <button class="linkbtn" id="clearHist">Clear history</button>
+      <button class="linkbtn" id="clearHist" title="Clear history">Clear</button>
     </div>
     <div class="hist" id="hist"></div>
     <div class="entry"><div class="ed" id="mainEd" tabindex="0" aria-label="Expression entry"></div></div>
@@ -300,6 +333,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
   <section class="solve" id="solve" aria-label="Step-by-step calculators"></section>
 
   <section class="keys" id="keys" aria-label="Keypad">
+    <button class="khide" id="khide" type="button">Hide keypad ▾</button>
     <div class="kgrid sci" id="ksci"></div>
     <div class="kgrid num" id="knum"></div>
   </section>
@@ -1012,9 +1046,13 @@ class Editor{
       this.cur={row,i};
     }
     if(active!==this) setActive(this); else this.render();
+    showKeys();
   }
 }
 function setActive(ed){ const prev=active; active=ed; if(prev&&prev!==ed&&prev.host.isConnected) prev.render(); ed.render(); }
+/* On phones the Graph and Solve tabs hide the keypad until an entry box is tapped. */
+function showKeys(){ const a=document.getElementById('app'); if(a&&!a.classList.contains('kbd')){ a.classList.add('kbd'); if(typeof drawSoon==='function') drawSoon(); } }
+function hideKeys(){ const a=document.getElementById('app'); if(a&&a.classList.contains('kbd')){ a.classList.remove('kbd'); if(typeof drawSoon==='function') drawSoon(); } }
 
 /* ---------- calculator ---------- */
 const hist=[]; let shift=false, stoPending=false, hyp=false;
@@ -1171,13 +1209,14 @@ function act(a){
 
 /* keypad */
 const FR='<span class="kfrac"><i></i><b></b><i></i></span>';
+const PH='<i class="ph"></i>', FRS='<span class="kfrac sm"><i></i><b></b><i></i></span>';
 const MT='<span class="kmat"><i></i><i></i><i></i><i></i></span>';
 const SCI=[
  {l:'2nd',a:'shift',c:'mod',id:'kShift'},{l:'MENU',a:'t:settings',c:'mod'},{l:'◀',a:'left',c:'mod'},{l:'▶',a:'right',c:'mod'},{l:'DEL',a:'del',c:'del'},{l:'AC',a:'ac',c:'del'},
  {l:'DEG',a:'drg',l2:'►DRG',a2:'drgconv',id:'kAngle'},{l:'<i>x</i>⇔E',a:'xe',l2:'FSE',a2:'fse'},{l:MT,a:'mat',l2:'MTRX',a2:'t:matrix'},{l:'Σ',a:'s:sum',l2:'Π',a2:'s:prod'},{l:'∫d<i>x</i>',a:'s:int',l2:'d/d<i>x</i>',a2:'s:ddx'},{l:'S⇔D',a:'sd'},
  {l:'π',a:'c:π',l2:'hyp',a2:'hyp'},{l:'sin',a:'f:sin',l2:'sin<sup>−1</sup>',a2:'f:asin'},{l:'cos',a:'f:cos',l2:'cos<sup>−1</sup>',a2:'f:acos'},{l:'tan',a:'f:tan',l2:'tan<sup>−1</sup>',a2:'f:atan'},{l:'<i>i</i>',a:'c:i',l2:'∠',a2:'c:∠'},{l:'e',a:'c:e',l2:'log<sub>▫</sub>▫',a2:'s:logb'},
  {l:'▫<sup>−1</sup>',a:'inv',l2:'lim',a2:'s:lim'},{l:'▫<sup>2</sup>',a:'sq',l2:'▫<sup>3</sup>',a2:'cube'},{l:'√▫',a:'s:sqrt',l2:'<sup>3</sup>√▫',a2:'cbrt'},{l:'▫<sup>▫</sup>',a:'s:pow',l2:'<sup>▫</sup>√▫',a2:'s:root'},{l:'log<sub>10</sub>',a:'f:log',l2:'10<sup>▫</sup>',a2:'tenpow'},{l:'ln',a:'f:ln',l2:'e<sup>▫</sup>',a2:'epow'},
- {l:'D°M′S',a:'dms',l2:'STAT',a2:'t:stat'},{l:FR,a:'s:frac',l2:'▫ '+'<sup>▫</sup>⁄<sub>▫</sub>',a2:'s:mix'},{l:'<i>x</i>',a:'c:x',l2:'<i>y</i>',a2:'c:y'},{l:'STO',a:'sto'},{l:'MR',a:'c:M',l2:'M+',a2:'mplus'},{l:'<i>x</i>→M',a:'xm',l2:'M−',a2:'mminus'},
+ {l:'D°M′S',a:'dms',l2:'STAT',a2:'t:stat'},{l:FR,a:'s:frac',l2:'▫'+FRS,a2:'s:mix'},{l:'<i>x</i>',a:'c:x',l2:'<i>y</i>',a2:'c:y'},{l:'STO',a:'sto'},{l:'MR',a:'c:M',l2:'M+',a2:'mplus'},{l:'<i>x</i>→M',a:'xm',l2:'M−',a2:'mminus'},
  {l:'A',a:'c:A'},{l:'B',a:'c:B'},{l:'C',a:'c:C'},{l:'D',a:'c:D'},{l:',',a:'c:,'},{l:'Ans',a:'c:Ans'}
 ];
 const NUM=[
@@ -1189,7 +1228,8 @@ const NUM=[
 function buildKeys(host,defs){
   defs.forEach(d=>{
     const b=el('button','k'+(d.c?' '+d.c:'')+(d.a2?' has2':'')); b.type='button'; if(d.id) b.id=d.id;
-    b.innerHTML='<span class="k2">'+(d.l2||'')+'</span><span class="k1">'+d.l+'</span>';
+    const lab=t=>(t||'').replace(/▫/g,PH);
+    b.innerHTML='<span class="k2">'+lab(d.l2)+'</span><span class="k1">'+lab(d.l)+'</span>';
     b.addEventListener('pointerdown',e=>e.preventDefault());
     b.addEventListener('click',()=>act(shift&&d.a2?d.a2:d.a));
     host.appendChild(b);
@@ -1389,7 +1429,7 @@ function buildFnList(){
   $('#addFn').disabled=fns.length>=6;
   if(wasFn){ const t=fns[Math.min(Math.max(idx,0),fns.length-1)]; setActive(t?t.ed:mainEd); }
 }
-$('#addFn').onclick=()=>{ if(fns.length>=6) return; fns.push({row:[],on:true}); buildFnList(); setActive(fns[fns.length-1].ed); save(); };
+$('#addFn').onclick=()=>{ if(fns.length>=6) return; fns.push({row:[],on:true}); buildFnList(); setActive(fns[fns.length-1].ed); showKeys(); save(); };
 
 function niceStep(raw){ const p=Math.pow(10,Math.floor(Math.log10(raw))), m=raw/p; return (m<=1?1:m<=2?2:m<=5?5:10)*p; }
 function tickLabel(v,step){
@@ -1606,13 +1646,15 @@ buildFnList();
 }
 
 function setView(v){
-  $('#app').dataset.view=v;
+  $('#app').dataset.view=v; hideKeys();
   $('#tabCalc').setAttribute('aria-selected',v==='calc'); $('#tabGraph').setAttribute('aria-selected',v==='graph'); $('#tabSolve').setAttribute('aria-selected',v==='solve');
   if(v==='solve'){ if(window.solveShown) solveShown(); renderHist(); }
   else if(v==='graph'){ if(active===mainEd&&fns[0]) setActive(fns[0].ed); fns.forEach(o=>o.ed.render()); resize(); }
   else { setActive(mainEd); renderHist(); }
 }
 $('#tabCalc').onclick=()=>setView('calc');
+$('#khide').onclick=hideKeys;
+$('#over').addEventListener('pointerdown',hideKeys);
 $('#tabGraph').onclick=()=>setView('graph');
 $('#tabSolve').onclick=()=>setView('solve');
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ renderHist(); mainEd.render(); fns.forEach(o=>o.ed.render()); draw(); });
