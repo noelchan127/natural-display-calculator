@@ -1,0 +1,14 @@
+{
+  "name": "natural-display-calculator-windows",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Windows desktop app for Natural Display Calculator (Tauri, WebView2)",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "tauri build",
+    "icons": "tauri icon ../art/icon-1024.png --output src-tauri/icons"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4"
+  }
+}
