@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Noel Chan
 /* Solve view: derivative, integral, algebra, matrix and geometry calculators with worked steps.
    Uses globals from index.html (engine + editor) and the nerdamer algebra library when it has loaded. */

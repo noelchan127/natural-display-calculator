@@ -44,6 +44,6 @@ To change the calculator, edit `web/src/index.html` or `web/src/solve.js`. Both 
 
 Copyright © 2026 Noel Chan
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3 only. It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the full text.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the full text.
 
 The bundled algebra library (MIT), fonts (SIL Open Font License 1.1), Android libraries (Apache 2.0) and Rust crates in the Windows app keep their own licences; see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [licenses/](licenses/). After changing dependencies, regenerate the notices with `python3 tools/third_party_notices.py`. Each app shows the licence and notices under **MENU → About**.

@@ -28,7 +28,7 @@
     "targets": ["nsis"],
     "publisher": "Noel Chan",
     "copyright": "Copyright (C) 2026 Noel Chan",
-    "license": "GPL-3.0-only",
+    "license": "GPL-3.0-or-later",
     "licenseFile": "../../LICENSE",
     "category": "Education",
     "shortDescription": "Scientific and graphing calculator with natural display",

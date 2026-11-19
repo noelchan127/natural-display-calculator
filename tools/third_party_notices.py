@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Noel Chan
 """Write THIRD-PARTY-NOTICES.md: the components bundled into the apps and their licences.
 
@@ -41,7 +41,8 @@ def main():
     parts = [
         '# Third-party notices',
         '',
-        'Natural Display Calculator is licensed under the GNU General Public License, version 3 only '
+        'Natural Display Calculator is licensed under the GNU General Public License, version 3 or (at your option) '
+        'any later version '
         '(see [LICENSE](LICENSE)). It includes the following components, which keep their own licences. '
         'All of them are compatible with GPL-3.0.',
         '',

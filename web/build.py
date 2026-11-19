@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-3.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Noel Chan
 """Build web/dist/index.html: one self-contained, offline page.
 
