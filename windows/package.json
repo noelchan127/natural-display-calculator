@@ -1,6 +1,7 @@
 {
   "name": "natural-display-calculator-windows",
   "version": "1.0.0",
+  "author": "Noel Chan",
   "license": "GPL-3.0-or-later",
   "private": true,
   "description": "Windows desktop app for Natural Display Calculator (Tauri, WebView2)",

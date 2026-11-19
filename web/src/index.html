@@ -182,7 +182,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 
 /* Tools panel */
 .tools{position:fixed;inset:0;background:rgba(10,14,20,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:20}
-.tpanel{background:var(--chassis);border:1px solid var(--line);border-radius:12px;width:min(560px,100%);max-height:min(640px,100%);display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.tpanel{background:var(--chassis);border:1px solid var(--line);border-radius:12px;width:min(660px,100%);max-height:min(640px,100%);display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .thead{display:flex;align-items:flex-start;gap:8px;padding:10px;border-bottom:1px solid var(--line)}
 .ttabs{display:flex;gap:4px;flex-wrap:wrap;flex:1}
 .tbody{padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;font-size:13px}
@@ -190,6 +190,10 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .tbody p{margin:0;color:var(--muted);font-size:12px;max-width:65ch}
 .trow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .trow>label,.trow>.lab{min-width:120px}
+.trow.seg{align-items:flex-start;flex-wrap:nowrap}
+.trow.seg>.lab{padding-top:5px;flex:0 0 120px}
+.opts{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
+.ttitle,#tclose .cl-x{display:none}
 .clist{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,auto);gap:0;font-variant-numeric:tabular-nums}
 .clist button{display:contents;cursor:pointer}
 .clist button>span{padding:5px 8px;border-bottom:1px dashed var(--line);text-align:left}
@@ -223,6 +227,20 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
   .app.kbd .fn .ed{min-height:30px;padding:2px}
 }
 @media (max-width:600px){
+  /* menu on a phone: "Menu" and ✕ on top, the tabs in an even 4 × 2 grid */
+  .thead{flex-wrap:wrap;align-items:center;row-gap:8px;padding:8px 10px 10px}
+  .ttitle{display:block;flex:1;font-weight:600;font-size:14px}
+  .ttabs{order:3;flex:1 0 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
+  .ttabs .btn{padding:7px 2px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tclose{padding:4px 11px;font-size:14px}
+  #tclose .cl-t{display:none} #tclose .cl-x{display:inline}
+  /* settings on a phone: label above, options in equal columns */
+  .trow.seg{flex-direction:column;align-items:stretch;gap:5px}
+  .trow.seg>.lab{flex:none;padding-top:0;color:var(--ink);font-weight:500}
+  .opts{display:grid;gap:5px}
+  .opts-1{grid-template-columns:1fr} .opts-2,.opts-4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opts-3{grid-template-columns:repeat(3,minmax(0,1fr))} .opts-many{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .opts .btn{padding:7px 4px;text-align:center;font-size:13px;line-height:1.25}
   h1{display:none}
   .tabs{margin-left:0;flex:1}
   .tabs button{flex:1;padding:7px 6px}
@@ -355,7 +373,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 
 <div class="tools" id="tools" hidden>
   <div class="tpanel" role="dialog" aria-label="Menu">
-    <div class="thead"><div class="ttabs" id="ttabs"></div><button class="btn" id="tclose">Close</button></div>
+    <div class="thead"><div class="ttitle">Menu</div><div class="ttabs" id="ttabs"></div><button class="btn" id="tclose" aria-label="Close" title="Close (Esc)"><span class="cl-t">Close</span><span class="cl-x" aria-hidden="true">✕</span></button></div>
     <div class="tbody" id="tbody"></div>
   </div>
 </div>
@@ -1387,9 +1405,10 @@ $('#tclose').onclick=closeTools;
 $('#tools').addEventListener('pointerdown',e=>{ if(e.target===$('#tools')) closeTools(); });
 const insertAnd=a=>{ closeTools(); act(a); };
 function seg(label,opts,cur,pick){
-  const r=el('div','trow'); r.appendChild(el('span','lab',label));
-  opts.forEach(([v,t])=>{ const b=el('button','btn'+(v===cur?' sel':''),t); b.type='button'; b.onclick=()=>{ pick(v); renderTools(); }; r.appendChild(b); });
-  return r;
+  const r=el('div','trow seg'), lab=el('span','lab',label), g=el('div','opts '+(opts.length>4?'opts-many':'opts-'+opts.length));
+  g.setAttribute('role','group'); g.setAttribute('aria-label',label);
+  opts.forEach(([v,t])=>{ const b=el('button','btn'+(v===cur?' sel':''),t); b.type='button'; b.setAttribute('aria-pressed',v===cur?'true':'false'); b.onclick=()=>{ pick(v); renderTools(); }; g.appendChild(b); });
+  r.append(lab,g); return r;
 }
 const CONSTS=[['c','Speed of light','299792458',0,'m/s'],['g','Standard gravity','9.80665',0,'m/s²'],['G','Gravitational constant','6.67430',-11,'m³/(kg·s²)'],['h','Planck constant','6.62607015',-34,'J·s'],['ħ','Reduced Planck constant','1.054571817',-34,'J·s'],['k','Boltzmann constant','1.380649',-23,'J/K'],['Nₐ','Avogadro constant','6.02214076',23,'1/mol'],['R','Molar gas constant','8.314462618',0,'J/(mol·K)'],['e','Elementary charge','1.602176634',-19,'C'],['ε₀','Vacuum permittivity','8.8541878128',-12,'F/m'],['μ₀','Vacuum permeability','1.25663706212',-6,'N/A²'],['mₑ','Electron mass','9.1093837015',-31,'kg'],['mₚ','Proton mass','1.67262192369',-27,'kg'],['mₙ','Neutron mass','1.67492749804',-27,'kg'],['u','Atomic mass unit','1.66053906660',-27,'kg'],['F','Faraday constant','96485.33212',0,'C/mol'],['σ','Stefan–Boltzmann constant','5.670374419',-8,'W/(m²·K⁴)'],['R∞','Rydberg constant','10973731.568160',0,'1/m'],['a₀','Bohr radius','5.29177210903',-11,'m'],['α','Fine-structure constant','7.2973525693',-3,''],['b','Wien displacement constant','2.897771955',-3,'m·K'],['μB','Bohr magneton','9.2740100783',-24,'J/T'],['Vₘ','Molar volume, ideal gas (0 °C, 1 atm)','22.41396954',-3,'m³/mol'],['atm','Standard atmosphere','101325',0,'Pa']];
 const PREFIX=[['T',12],['G',9],['M',6],['k',3],['m',-3],['μ',-6],['n',-9],['p',-12],['f',-15]];
@@ -1455,10 +1474,10 @@ function renderTools(){
     const t=el('div','abt-title','Natural Display Calculator'); B.appendChild(t);
     B.appendChild(el('div','abt-ver','Version '+(/^\d/.test(APP_VERSION)?APP_VERSION:'(development build)')));
     if(APP.public){
-      B.appendChild(linkLine('Made by ','noelchan127',APP.authorUrl));
+      B.appendChild(linkLine('Made by ','Noel Chan',APP.authorUrl));
       B.appendChild(linkLine('Licence: ','GNU GPL v3.0 or later',APP.licenseUrl));
     }else{
-      B.appendChild(el('p','abt-line','Made by noelchan127'));
+      B.appendChild(el('p','abt-line','Made by Noel Chan'));
       /* no public copy of the licence online yet, so the link opens the text built into the app */
       const lp=el('p','abt-line'), la=el('a',null,'GNU GPL v3.0 or later'); la.href='#'; la.onclick=e=>{ e.preventDefault(); showText('lic-gpl','The licence'); };
       lp.append('Licence: ',la); B.appendChild(lp);
