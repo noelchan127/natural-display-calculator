@@ -10,9 +10,9 @@ to the internet.
 This is a one-person hobby project I made for my own use. I'll look at issues and suggestions when I can,
 but please forgive me if I'm slow to respond.
 
-In the app, **MENU → About** shows the version, licence and links to the latest release and the source
-code. The app doesn't check for updates itself: to update, download the latest release and install it over
-the old one; your settings and graphs are kept. **Copy system info** copies the version, platform, screen
+In the app, **MENU → About** shows the version and licence. The app never connects to the internet and
+doesn't check for updates: to update, install the new version over the old one; your settings and graphs
+are kept. **Copy system info** copies the version, platform, screen
 size and settings, which is useful in a bug report.
 
 ## Repository layout

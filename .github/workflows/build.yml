@@ -2,7 +2,9 @@ name: Build apps
 
 on:
   push:
-    branches: [main]
+    # main publishes a release (when VERSION changes) and updates 'builds';
+    # testing only builds, into 'test-builds', and never publishes a release.
+    branches: [main, testing]
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -196,7 +198,7 @@ jobs:
 
   builds-branch:
     name: Update builds branch
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
     needs: [web, windows, android]
     permissions:
       contents: write
@@ -205,9 +207,10 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: dist
-      - name: Push latest builds to the 'builds' branch
+      - name: Push latest builds to the 'builds' (main) or 'test-builds' (testing) branch
         env:
           GH_TOKEN: ${{ github.token }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && 'builds' || 'test-builds' }}
         run: |
           mkdir site && cd site
           cp ../dist/windows/* ../dist/android/* .
@@ -217,12 +220,12 @@ jobs:
           # Latest builds
 
           Built from commit ${GITHUB_SHA::7} on $(date -u '+%Y-%m-%d %H:%M UTC') by run #${GITHUB_RUN_NUMBER}.
-          This branch is replaced on every push to main.
+          This branch is replaced on every push to ${GITHUB_REF_NAME}. Test builds are not releases.
           EOF
           sed -i 's/^          //' README.md
-          git init -q -b builds
+          git init -q -b "$TARGET"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -q -m "Builds from ${GITHUB_SHA::7} (run #${GITHUB_RUN_NUMBER})"
-          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" builds
+          git push -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$TARGET"

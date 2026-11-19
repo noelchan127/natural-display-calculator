@@ -12,6 +12,7 @@
       {
         "label": "main",
         "create": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --disable-background-networking --disable-component-update",
         "title": "Natural Display Calculator",
         "width": 1280,
         "height": 820,

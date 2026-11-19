@@ -3,12 +3,17 @@
 
     <!-- No INTERNET permission: the calculator runs entirely from the app's own files. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
+        <!-- Nothing leaves the phone: the app has no INTERNET permission, Android backup is off (above), and these
+             stop the system WebView sending usage statistics or Safe Browsing look-ups through Google Play services. -->
+        <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
+        <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
 
         <activity
             android:name=".MainActivity"

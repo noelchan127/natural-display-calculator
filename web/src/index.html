@@ -1336,7 +1336,8 @@ $('#clearHist').onclick=()=>{ hist.length=0; renderHist(); };
 /* ---------- menu panel ---------- */
 const TABS=[['settings','Settings'],['funcs','Functions'],['const','Constants'],['convert','Convert'],['stat','Statistics'],['matrix','Matrix'],['base','Base-N'],['about','About']];
 const APP_VERSION='__APP_VERSION__';
-const APP={authorUrl:'https://github.com/noelchan127',repoUrl:'https://github.com/noelchan127/natural-display-calculator'};
+/* public: set to true once the GitHub repository is public, to show the links to it in the About tab */
+const APP={public:false,authorUrl:'https://github.com/noelchan127',repoUrl:'https://github.com/noelchan127/natural-display-calculator'};
 APP.releasesUrl=APP.repoUrl+'/releases/latest'; APP.licenseUrl=APP.repoUrl+'/blob/main/LICENSE';
 /* where this copy is running: the Android app exposes its haptics bridge, the Windows app is served from tauri.localhost */
 const PLATFORM=(typeof window!=='undefined'&&window.AndroidHaptics)?'android':(typeof location!=='undefined'&&location.hostname==='tauri.localhost')?'windows':'web';
@@ -1432,21 +1433,32 @@ function renderTools(){
   }else if(toolTab==='about'){
     /* Laid out like Refresh Rate Switcher's About tab; also carries the GPL-3.0 section 5d notices
        (copyright, no warranty, how to see the licence) and the full licence texts for offline copies. */
+    const pre=el('pre','lictext'); pre.hidden=true;
+    const showText=(id,title)=>{ const tp=document.getElementById(id); pre.textContent=tp?tp.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
     const t=el('div','abt-title','Natural Display Calculator'); B.appendChild(t);
     B.appendChild(el('div','abt-ver','Version '+(/^\d/.test(APP_VERSION)?APP_VERSION:'(development build)')));
-    B.appendChild(linkLine('Made by ','noelchan127',APP.authorUrl));
-    B.appendChild(linkLine('Licence: ','GNU GPL v3.0 or later',APP.licenseUrl));
+    if(APP.public){
+      B.appendChild(linkLine('Made by ','noelchan127',APP.authorUrl));
+      B.appendChild(linkLine('Licence: ','GNU GPL v3.0 or later',APP.licenseUrl));
+    }else{
+      B.appendChild(el('p','abt-line','Made by noelchan127'));
+      /* no public copy of the licence online yet, so the link opens the text built into the app */
+      const lp=el('p','abt-line'), la=el('a',null,'GNU GPL v3.0 or later'); la.href='#'; la.onclick=e=>{ e.preventDefault(); showText('lic-gpl','The licence'); };
+      lp.append('Licence: ',la); B.appendChild(lp);
+    }
     B.appendChild(el('p','abt-grey','Copyright © 2026 Noel Chan. Free, open-source software provided without any warranty. You may share and modify it under the licence terms.'));
-    B.appendChild(linkLine('Updates: ','download the latest version',APP.releasesUrl,true));
-    B.appendChild(linkLine('Source code and bug reports: ','GitHub',APP.repoUrl));
-    B.appendChild(el('p','abt-grey','The app never connects to the internet. Links open in your browser, and updates are installed by '+(PLATFORM==='android'?'installing the new APK':PLATFORM==='windows'?'running the new installer':'downloading the new offline file')+'.'));
+    if(APP.public){
+      B.appendChild(linkLine('Updates: ','download the latest version',APP.releasesUrl,true));
+      B.appendChild(linkLine('Source code and bug reports: ','GitHub',APP.repoUrl));
+      B.appendChild(el('p','abt-grey','The app never connects to the internet. Links open in your browser, and updates are installed by '+(PLATFORM==='android'?'installing the new APK':PLATFORM==='windows'?'running the new installer':'downloading the new offline file')+'.'));
+    }else{
+      B.appendChild(el('p','abt-grey abt-gap','The app never connects to the internet. To update, '+(PLATFORM==='android'?'install the new APK over this one':PLATFORM==='windows'?'run the new installer':'replace this file with the new one')+'; your settings and graphs are kept.'));
+    }
     const copy=el('button','btn abt-copy','Copy system info'); copy.type='button';
     copy.onclick=()=>copyText(systemInfo()).then(ok=>{ copy.textContent=ok?'Copied ✓':'Couldn’t copy'; });
     B.appendChild(copy);
     B.appendChild(el('p','abt-grey','Paste this into a bug report so I can see your setup.'));
     h('Licence texts');
-    const pre=el('pre','lictext'); pre.hidden=true;
-    const showText=(id,title)=>{ const tp=document.getElementById(id); pre.textContent=tp?tp.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
     btnRow([['GNU GPL v3',()=>showText('lic-gpl','The licence')],['Third-party notices',()=>showText('lic-3p','The third-party notice file')],['Apache License 2.0',()=>showText('lic-apache','The Apache License')],['MIT License',()=>showText('lic-mit','The MIT License')]]);
     B.appendChild(pre);
   }else if(toolTab==='funcs'){
