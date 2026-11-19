@@ -271,6 +271,13 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .gtable{display:grid;grid-template-columns:auto auto;gap:4px 16px;justify-content:start;font-variant-numeric:tabular-nums}
 .gsvg{margin-top:10px;overflow-x:auto}
 .gsvg text{font:11px var(--ui);fill:currentColor}
+.abt-title{font-size:20px;font-weight:600;margin:2px 0 0}
+.abt-ver{color:var(--muted);margin:2px 0 12px}
+.abt-line{margin:4px 0}
+.abt-line a{color:var(--accent,#2350d6);font-weight:500}
+.abt-gap{margin-top:12px}
+.abt-grey{color:var(--muted);font-size:13px;margin:4px 0}
+.abt-copy{margin-top:12px;width:auto;align-self:flex-start;display:inline-block}
 .lictext{white-space:pre-wrap;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;max-height:50vh;overflow:auto;background:var(--bg);border:1px solid var(--line);padding:10px 12px;border-radius:8px;margin:8px 0 0}
 .srcurl{user-select:all;-webkit-user-select:all;font-weight:500}
 </style>
@@ -1329,6 +1336,33 @@ $('#clearHist').onclick=()=>{ hist.length=0; renderHist(); };
 /* ---------- menu panel ---------- */
 const TABS=[['settings','Settings'],['funcs','Functions'],['const','Constants'],['convert','Convert'],['stat','Statistics'],['matrix','Matrix'],['base','Base-N'],['about','About']];
 const APP_VERSION='__APP_VERSION__';
+const APP={authorUrl:'https://github.com/noelchan127',repoUrl:'https://github.com/noelchan127/natural-display-calculator'};
+APP.releasesUrl=APP.repoUrl+'/releases/latest'; APP.licenseUrl=APP.repoUrl+'/blob/main/LICENSE';
+/* where this copy is running: the Android app exposes its haptics bridge, the Windows app is served from tauri.localhost */
+const PLATFORM=(typeof window!=='undefined'&&window.AndroidHaptics)?'android':(typeof location!=='undefined'&&location.hostname==='tauri.localhost')?'windows':'web';
+/* "Label: link" line. In a browser the link opens a new tab; in the apps a plain link is handed to the system browser. */
+function linkLine(label,text,url,gap){
+  const p=el('p','abt-line'+(gap?' abt-gap':'')), a=el('a',null,text);
+  a.href=url;
+  if(PLATFORM==='web'){ a.target='_blank'; a.rel='noopener noreferrer'; }
+  else{ /* in the apps every link click becomes a plain navigation, which the app passes to the browser; no new windows */
+    a.addEventListener('click',e=>{ e.preventDefault(); location.href=url; });
+    a.addEventListener('auxclick',e=>e.preventDefault()); }
+  p.append(label,a); return p;
+}
+function systemInfo(){
+  const n=navigator, sc=screen, plat={android:'Android app',windows:'Windows app',web:location.protocol==='file:'?'Offline web page':'Web page'}[PLATFORM];
+  return ['Natural Display Calculator '+APP_VERSION, 'Platform: '+plat, 'Browser engine: '+n.userAgent,
+    'Screen: '+sc.width+'×'+sc.height+' at '+(window.devicePixelRatio||1)+'× scale; window '+innerWidth+'×'+innerHeight,
+    'Language: '+(n.language||'?'), 'Layout: '+(matchMedia('(min-width:900px)').matches?'wide':'narrow')+', '+(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')+' theme',
+    'Settings: angle '+S.ang+', format '+S.fmt+(S.fmt==='norm'?'':' '+S.digits)+', answers '+(S.dec?'decimal':'exact')+', complex '+(S.cplx?'on':'off')+(S.polar?' (polar)':'')+', mixed fractions '+(S.mixed?'on':'off')+(PLATFORM==='android'?', vibration '+(S.haptic?'on':'off'):'')].join('\n');
+}
+/* clipboard API where allowed, otherwise the older select-and-copy route (file:// pages, some WebViews) */
+function copyText(text){
+  const old=()=>{ try{ const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly',''); ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); const ok=document.execCommand('copy'); ta.remove(); return ok; }catch(e){ return false; } };
+  if(navigator.clipboard&&window.isSecureContext) return navigator.clipboard.writeText(text).then(()=>true,()=>old());
+  return Promise.resolve(old());
+}
 let toolTab='settings';
 function openTools(tab){ toolTab=tab; $('#tools').hidden=false; renderTools(); }
 function closeTools(){ $('#tools').hidden=true; }
@@ -1396,15 +1430,24 @@ function renderTools(){
     para('With complex mode off, an expression still gives a complex answer if it contains i or ∠.');
     if(HAPTIC){ B.appendChild(seg('Vibrate on key press',[[true,'On'],[false,'Off']],S.haptic,v=>{ setting('haptic',v); if(v) haptic(); })); para('Uses your phone’s touch feedback. If you feel nothing, check that touch vibration is on in Android’s sound and vibration settings.'); }
   }else if(toolTab==='about'){
-    /* Appropriate Legal Notices (GPL-3.0 section 5d): copyright, no warranty, the licence and where the source is */
-    h('Natural Display Calculator'+(/^\d/.test(APP_VERSION)?' '+APP_VERSION:''));
-    para('Copyright © 2026 Noel Chan');
-    para('This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.');
-    para('This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.');
-    const src=el('p'); src.append('Source code: ',el('span','srcurl','github.com/noelchan127/natural-display-calculator')); B.appendChild(src);
+    /* Laid out like Refresh Rate Switcher's About tab; also carries the GPL-3.0 section 5d notices
+       (copyright, no warranty, how to see the licence) and the full licence texts for offline copies. */
+    const t=el('div','abt-title','Natural Display Calculator'); B.appendChild(t);
+    B.appendChild(el('div','abt-ver','Version '+(/^\d/.test(APP_VERSION)?APP_VERSION:'(development build)')));
+    B.appendChild(linkLine('Made by ','noelchan127',APP.authorUrl));
+    B.appendChild(linkLine('Licence: ','GNU GPL v3.0 or later',APP.licenseUrl));
+    B.appendChild(el('p','abt-grey','Copyright © 2026 Noel Chan. Free, open-source software provided without any warranty. You may share and modify it under the licence terms.'));
+    B.appendChild(linkLine('Updates: ','download the latest version',APP.releasesUrl,true));
+    B.appendChild(linkLine('Source code and bug reports: ','GitHub',APP.repoUrl));
+    B.appendChild(el('p','abt-grey','The app never connects to the internet. Links open in your browser, and updates are installed by '+(PLATFORM==='android'?'installing the new APK':PLATFORM==='windows'?'running the new installer':'downloading the new offline file')+'.'));
+    const copy=el('button','btn abt-copy','Copy system info'); copy.type='button';
+    copy.onclick=()=>copyText(systemInfo()).then(ok=>{ copy.textContent=ok?'Copied ✓':'Couldn’t copy'; });
+    B.appendChild(copy);
+    B.appendChild(el('p','abt-grey','Paste this into a bug report so I can see your setup.'));
+    h('Licence texts');
     const pre=el('pre','lictext'); pre.hidden=true;
-    const showText=(id,title)=>{ const t=document.getElementById(id); pre.textContent=t?t.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
-    btnRow([['GNU GPL v3 (full text)',()=>showText('lic-gpl','The licence')],['Third-party notices',()=>showText('lic-3p','The third-party notice file')],['Apache License 2.0',()=>showText('lic-apache','The Apache License')],['MIT License',()=>showText('lic-mit','The MIT License')]]);
+    const showText=(id,title)=>{ const tp=document.getElementById(id); pre.textContent=tp?tp.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
+    btnRow([['GNU GPL v3',()=>showText('lic-gpl','The licence')],['Third-party notices',()=>showText('lic-3p','The third-party notice file')],['Apache License 2.0',()=>showText('lic-apache','The Apache License')],['MIT License',()=>showText('lic-mit','The MIT License')]]);
     B.appendChild(pre);
   }else if(toolTab==='funcs'){
     h('Rounding and parts');

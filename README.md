@@ -1,6 +1,21 @@
 # Natural Display Calculator
 
-A scientific and graphing calculator with natural (textbook) display, plus step-by-step derivative, integral, algebra, matrix and geometry calculators. It runs fully offline.
+## About
+A scientific and graphing calculator that shows maths the way it's written in a textbook: real fractions,
+roots, powers and matrices, with exact answers such as ⅔, √2 or π/4 and a decimal whenever you want one.
+It graphs functions, and its Solve tab works out derivatives, integrals, equations, matrices and geometry
+with worked steps. It runs on Windows, on Android and as a single offline web page, and it never connects
+to the internet.
+
+This is a one-person hobby project I made for my own use. I'll look at issues and suggestions when I can,
+but please forgive me if I'm slow to respond.
+
+In the app, **MENU → About** shows the version, licence and links to the latest release and the source
+code. The app doesn't check for updates itself: to update, download the latest release and install it over
+the old one; your settings and graphs are kept. **Copy system info** copies the version, platform, screen
+size and settings, which is useful in a bug report.
+
+## Repository layout
 
 | Folder | What it is |
 |---|---|
@@ -14,7 +29,7 @@ A scientific and graphing calculator with natural (textbook) display, plus step-
 Every push to `main` builds all three. Download them from the run's **Artifacts** on the Actions tab, or from the [`builds` branch](../../tree/builds), which always holds the latest set.
 Each new version is published on the **Releases** page: change the number in `VERSION` (for example to `1.0.1`) and push to `main`. Pushing a tag such as `v1.0.1` does the same.
 
-- **Windows:** `Natural Display Calculator_<version>_x64-setup.exe` installs for the current user (no admin needed). The `(portable)` exe runs without installing. Both need the WebView2 runtime, which Windows 10 and 11 normally already have; the installer adds it if missing. The apps are not code-signed, so Windows SmartScreen warns the first time: choose **More info → Run anyway**.
+- **Windows:** `Natural-Display-Calculator-<version>-Windows-setup.exe` installs for the current user (no admin needed) to `%LOCALAPPDATA%\Natural Display Calculator`, adds a Start Menu entry, registers in Settings → Apps → Installed apps, and puts `LICENSE.txt` next to the program. Running a newer setup upgrades in place and keeps your settings; `/S` installs silently. The `(portable)` exe runs without installing. Both need the WebView2 runtime, which Windows 10 and 11 normally already have; the installer adds it if missing. The apps are not code-signed, so Windows SmartScreen warns the first time: choose **More info → Run anyway**.
 - **Android:** `Natural-Display-Calculator.apk`. Allow installs from your browser or file manager when prompted. Android 7.0 or newer.
 
 ## Android signing
