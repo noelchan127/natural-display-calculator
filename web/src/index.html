@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Natural Display Calculator. Copyright (C) 2026 Noel Chan. SPDX-License-Identifier: GPL-3.0-only -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -270,6 +271,8 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .gtable{display:grid;grid-template-columns:auto auto;gap:4px 16px;justify-content:start;font-variant-numeric:tabular-nums}
 .gsvg{margin-top:10px;overflow-x:auto}
 .gsvg text{font:11px var(--ui);fill:currentColor}
+.lictext{white-space:pre-wrap;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;max-height:50vh;overflow:auto;background:var(--bg);border:1px solid var(--line);padding:10px 12px;border-radius:8px;margin:8px 0 0}
+.srcurl{user-select:all;-webkit-user-select:all;font-weight:500}
 </style>
 </head>
 <body>
@@ -1324,7 +1327,8 @@ $('#cplxChip').onclick=()=>act('cplx');
 $('#clearHist').onclick=()=>{ hist.length=0; renderHist(); };
 
 /* ---------- menu panel ---------- */
-const TABS=[['settings','Settings'],['funcs','Functions'],['const','Constants'],['convert','Convert'],['stat','Statistics'],['matrix','Matrix'],['base','Base-N']];
+const TABS=[['settings','Settings'],['funcs','Functions'],['const','Constants'],['convert','Convert'],['stat','Statistics'],['matrix','Matrix'],['base','Base-N'],['about','About']];
+const APP_VERSION='__APP_VERSION__';
 let toolTab='settings';
 function openTools(tab){ toolTab=tab; $('#tools').hidden=false; renderTools(); }
 function closeTools(){ $('#tools').hidden=true; }
@@ -1391,6 +1395,17 @@ function renderTools(){
     B.appendChild(seg('Complex answers',[[false,'a + bi'],[true,'r∠θ']],S.polar,v=>setting('polar',v)));
     para('With complex mode off, an expression still gives a complex answer if it contains i or ∠.');
     if(HAPTIC){ B.appendChild(seg('Vibrate on key press',[[true,'On'],[false,'Off']],S.haptic,v=>{ setting('haptic',v); if(v) haptic(); })); para('Uses your phone’s touch feedback. If you feel nothing, check that touch vibration is on in Android’s sound and vibration settings.'); }
+  }else if(toolTab==='about'){
+    /* Appropriate Legal Notices (GPL-3.0 section 5d): copyright, no warranty, the licence and where the source is */
+    h('Natural Display Calculator'+(/^\d/.test(APP_VERSION)?' '+APP_VERSION:''));
+    para('Copyright © 2026 Noel Chan');
+    para('This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.');
+    para('This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.');
+    const src=el('p'); src.append('Source code: ',el('span','srcurl','github.com/noelchan127/natural-display-calculator')); B.appendChild(src);
+    const pre=el('pre','lictext'); pre.hidden=true;
+    const showText=(id,title)=>{ const t=document.getElementById(id); pre.textContent=t?t.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
+    btnRow([['GNU GPL v3 (full text)',()=>showText('lic-gpl','The licence')],['Third-party notices',()=>showText('lic-3p','The third-party notice file')],['Apache License 2.0',()=>showText('lic-apache','The Apache License')],['MIT License',()=>showText('lic-mit','The MIT License')]]);
+    B.appendChild(pre);
   }else if(toolTab==='funcs'){
     h('Rounding and parts');
     btnRow([['floor(','c:floor(','Round down'],['ceil(','c:ceil(','Round up'],['round(','c:round(','Round to nearest whole number'],['ipart(','c:ipart(','Whole part'],['fpart(','c:fpart(','Fractional part'],['sign(','c:sign(','−1, 0 or 1']]);

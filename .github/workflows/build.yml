@@ -41,6 +41,13 @@ jobs:
           name: web
           path: web/dist/index.html
           if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: legal
+          path: |
+            LICENSE
+            THIRD-PARTY-NOTICES.md
+          if-no-files-found: error
 
   windows:
     name: Windows (Tauri, WebView2)
@@ -156,6 +163,7 @@ jobs:
           cp dist/windows/*portable*.exe "rel/Natural-Display-Calculator-$VERSION-Windows-portable.exe"
           cp dist/android/*.apk "rel/Natural-Display-Calculator-$VERSION-Android.apk"
           cp dist/web/index.html "rel/Natural-Display-Calculator-$VERSION-offline.html"
+          cp dist/legal/LICENSE dist/legal/THIRD-PARTY-NOTICES.md rel/
           ls -la rel
       - name: Create or update the release
         run: |
@@ -177,6 +185,8 @@ jobs:
           | `…-Windows-portable.exe` | Windows 10 or 11, runs without installing |
           | `…-Android.apk` | Android 7.0 or newer |
           | `…-offline.html` | Any browser, no install |
+
+          Free software under the GNU GPL v3 (see `LICENSE`); bundled components are listed in `THIRD-PARTY-NOTICES.md`.
 
           The Windows files are not code-signed, so SmartScreen warns the first time: choose **More info**, then **Run anyway**.
           On Android, allow installs from your browser or file manager when prompted. The app updates in place over earlier versions.
@@ -202,6 +212,7 @@ jobs:
           mkdir site && cd site
           cp ../dist/windows/* ../dist/android/* .
           cp ../dist/web/index.html "Natural-Display-Calculator-offline.html"
+          cp ../dist/legal/* .
           cat > README.md <<EOF
           # Latest builds
 

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Noel Chan
 package io.github.noelchan127.calculator;
 
 import android.app.Activity;

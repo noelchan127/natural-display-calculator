@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (C) 2026 Noel Chan
 /* Solve view: derivative, integral, algebra, matrix and geometry calculators with worked steps.
    Uses globals from index.html (engine + editor) and the nerdamer algebra library when it has loaded. */
 /* The algebra library is about 430 KB. The offline build wraps it in window.__loadNerdamer so the browser only

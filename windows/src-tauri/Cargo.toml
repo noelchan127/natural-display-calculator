@@ -3,6 +3,7 @@ name = "natural-display-calculator"
 version = "1.0.0"
 description = "Natural Display Calculator"
 authors = ["Noel Chan"]
+license = "GPL-3.0-only"
 edition = "2021"
 
 [build-dependencies]

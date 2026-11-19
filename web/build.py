@@ -1,9 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# Copyright (C) 2026 Noel Chan
 """Build web/dist/index.html: one self-contained, offline page.
 
 Inlines the Solve script, the nerdamer algebra library and the fonts into
 src/index.html, so the result needs no network access. Run `npm ci` first.
 """
 import base64
+import html
 import hashlib
 import os
 import re
@@ -66,6 +69,19 @@ def main():
         font_face('IBM Plex Sans', 'ibm-plex-sans', 'latin', 600, 'normal'),
     ])
     page = page.replace('<style>\n', '<style>\n' + css, 1)
+
+    # Licence texts for the About tab, so every copy carries them (GPL-3.0 section 4 and 6, MIT, OFL, Apache-2.0).
+    root = os.path.dirname(HERE)
+    version = read(root, 'VERSION').strip()
+    texts = {'lic-gpl': read(root, 'LICENSE'), 'lic-3p': read(root, 'THIRD-PARTY-NOTICES.md'),
+             'lic-apache': read(root, 'licenses', 'Apache-2.0.txt'), 'lic-mit': read(root, 'licenses', 'MIT.txt')}
+    tpl = ''.join(f'<template id="{k}">{html.escape(v, quote=False)}</template>\n' for k, v in texts.items())
+    if page.count('<script id="engine">') != 1:
+        sys.exit('engine script tag not found')
+    page = page.replace('<script id="engine">', tpl + '<script id="engine">', 1)
+    if page.count('__APP_VERSION__') < 1:
+        sys.exit('__APP_VERSION__ placeholder not found')
+    page = page.replace('__APP_VERSION__', version)
 
     head = page.split('<script', 1)[0]
     if re.search(r'(src|href)="https?://', head):
