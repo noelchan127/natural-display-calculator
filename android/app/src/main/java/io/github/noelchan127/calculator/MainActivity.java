@@ -5,7 +5,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.HapticFeedbackConstants;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -80,8 +82,21 @@ public class MainActivity extends Activity {
         s.setTextZoom(100); // the keypad layout is sized for 100% text
         s.setSupportZoom(false);
 
+        // Key-press haptics: the page calls AndroidHaptics.tap() as each keypad key goes down.
+        web.setHapticFeedbackEnabled(true);
+        web.addJavascriptInterface(new Haptics(), "AndroidHaptics");
+
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
             web.loadUrl(START_URL);
+        }
+    }
+
+    /** Exposed to the page; only plays the standard keyboard-tap feedback, which follows the phone's touch-feedback setting. */
+    private final class Haptics {
+        @JavascriptInterface
+        public void tap() {
+            final WebView w = web;
+            if (w != null) w.post(() -> w.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP));
         }
     }
 

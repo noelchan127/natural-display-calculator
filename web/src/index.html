@@ -349,7 +349,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 <script id="engine">
 /* ---------- math engine (no DOM) ---------- */
 const V={x:0,y:0,A:0,B:0,C:0,D:0,M:0,Ans:0};
-const S={ang:'deg',cplx:false,polar:false,fmt:'norm',digits:4,mixed:false,dec:false};
+const S={ang:'deg',cplx:false,polar:false,fmt:'norm',digits:4,mixed:false,dec:false,haptic:true};
 let CMODE=false;
 const KIDS={frac:['a','b'],sqrt:['a'],root:['n','a'],pow:['a'],abs:['a'],logb:['b','a'],int:['lo','hi','a'],ddx:['a','x'],sum:['lo','hi','a'],prod:['lo','hi','a'],lim:['x','a'],mix:['w','a','b'],rec:['a']};
 const kidsOf=n=>n.t==='mat'?n.cells:(KIDS[n.t]||[]).map(k=>n[k]);
@@ -468,7 +468,7 @@ function minv(a){
 }
 function add(a,b,s=1){
   a=num(a); b=num(b);
-  if(isN(a)&&isN(b)) return a+s*b;
+  if(isN(a)&&isN(b)){ const r=a+s*b; return Math.abs(r)<4*Number.EPSILON*Math.max(Math.abs(a),Math.abs(b))?0:r; }
   if(isM(a)||isM(b)){
     if(!isM(a)||!isM(b)||a.m.length!==b.m.length||a.m[0].length!==b.m[0].length) throw dimErr();
     return {m:a.m.map((r,i)=>r.map((v,j)=>v+s*b.m[i][j]))};
@@ -738,8 +738,11 @@ function solve(l,r){
   const old=V.x, h=x=>{ V.x=x; let v; try{ v=add(l(),r(),-1); }catch(e){ return NaN; } v=num(v); return isN(v)?v:NaN; };
   const N=6000, xs=[], hs=[], roots=[];
   for(let k=0;k<=N;k++){ const x=Math.sinh(-14+28*k/N); xs.push(x); hs.push(h(x)); }
-  const push=x=>{ let v=Number(x.toPrecision(10)); if(Math.abs(v)<1e-9) v=0; if(!roots.some(q=>Math.abs(q-v)<=1e-7*Math.max(1,Math.abs(v)))) roots.push(v); };
-  for(let k=0;k<N&&roots.length<12;k++){
+  const push=x=>{ let v=x; if(Math.abs(v)<1e-9) v=0; if(!roots.some(q=>Math.abs(q-v)<=1e-7*Math.max(1,Math.abs(v)))) roots.push(v); };
+  /* scan outward from 0 so the roots nearest the origin are found first */
+  const order=Array.from({length:N},(_,k)=>k).sort((p,q)=>Math.min(Math.abs(xs[p]),Math.abs(xs[p+1]))-Math.min(Math.abs(xs[q]),Math.abs(xs[q+1])));
+  for(const k of order){
+    if(roots.length>=12) break;
     const a=hs[k],b=hs[k+1]; if(!Number.isFinite(a)||!Number.isFinite(b)) continue;
     if(a===0){ push(xs[k]); continue; }
     if(a*b<0){
@@ -749,7 +752,14 @@ function solve(l,r){
     }else if(k>0&&Number.isFinite(hs[k-1])&&Math.abs(a)<Math.abs(hs[k-1])&&Math.abs(a)<=Math.abs(b)&&a*hs[k-1]>0){
       let lo=xs[k-1],hi=xs[k+1]; const ph=(Math.sqrt(5)-1)/2;
       for(let i=0;i<60;i++){ const m1=hi-ph*(hi-lo),m2=lo+ph*(hi-lo); if(Math.abs(h(m1))<Math.abs(h(m2))) hi=m2; else lo=m1; }
-      const x=(lo+hi)/2; if(Math.abs(h(x))<1e-9*(1+Math.abs(hs[k-1]))) push(x);
+      let x=(lo+hi)/2;
+      if(Math.abs(h(x))<1e-9*(1+Math.abs(hs[k-1]))){
+        /* a touching root is where the slope is zero: refine it there, as |h| alone only pins it to about 8 digits */
+        const sc=Math.max(1,Math.abs(x)), e=1e-5*sc, d=t=>h(t+e)-h(t-e);
+        let a=x-2e-4*sc, b=x+2e-4*sc, da=d(a);
+        if(Number.isFinite(da)&&da*d(b)<0){ for(let i=0;i<60;i++){ const m=(a+b)/2, dm=d(m); if(!Number.isFinite(dm)) break; if((dm<0)===(da<0)){ a=m; da=dm; } else b=m; } const y=(a+b)/2; if(Math.abs(h(y))<=Math.abs(h(x))*10+1e-15) x=y; }
+        push(x);
+      }
     }
   }
   V.x=old; return roots.sort((a,b)=>a-b);
@@ -832,8 +842,11 @@ function valueRow(v,o){
   if(isM(v)) return [{t:'mat',r:v.m.length,c:v.m[0].length,cells:v.m.flat().map(x=>numRow(x,o))}];
   if(v&&v.sol){
     if(!v.sol.length) return [C('no real solution found')];
-    const r=[C('x'),C('=')]; v.sol.slice(0,8).forEach((x,i)=>{ if(i) r.push(C(',')); r.push(...numRow(x,o)); });
-    if(v.sol.length>8) r.push(C(','),C('…')); return r;
+    /* show the 8 roots nearest 0, in order, with … where more were found on either side */
+    const near=[...v.sol].sort((a,b)=>Math.abs(a)-Math.abs(b)).slice(0,8).sort((a,b)=>a-b);
+    const r=[C('x'),C('=')]; if(near[0]>v.sol[0]) r.push(C('…'),C(','));
+    near.forEach((x,i)=>{ if(i) r.push(C(',')); r.push(...numRow(x,o)); });
+    if(near[near.length-1]<v.sol[v.sol.length-1]) r.push(C(','),C('…')); return r;
   }
   return [C('?')];
 }
@@ -968,7 +981,7 @@ class Editor{
     this.render();
   }
   set(row){ this.root=row; this.cur={row,i:row.length}; this.changed(); }
-  changed(){ this.render(); this.onChange(this); }
+  changed(){ this.autoParen=null; this.render(); this.onChange(this); }
   render(){
     const h=this.host; h.textContent='';
     const r=renderRow(this.root,active===this?this.cur:null); r.classList.add('rootrow'); h.appendChild(r); fix(r);
@@ -984,7 +997,19 @@ class Editor{
     this.cur={row:ps[k][0],i:ps[k][1]}; this.render();
   }
   ins(node){ this.cur.row.splice(this.cur.i,0,node); this.cur.i++; }
-  type(v){ this.ins(C(v)); this.changed(); }
+  type(v){
+    /* a typed function name such as "sin" already opened its bracket, so skip a "(" typed straight after it */
+    const ap=this.autoParen; if(v==='('&&ap&&ap.row===this.cur.row&&ap.i===this.cur.i){ this.autoParen=null; return; }
+    /* typed "sqrt(" or "abs(": the box stands in for the bracket, so the matching ")" steps out of the box */
+    const ab=this.autoBox;
+    if(ab){
+      if(this.cur.row!==ab.row) this.autoBox=null;
+      else if(!ab.open){ if(v==='('&&!ab.row.length){ ab.open=true; ab.depth=0; return; } this.autoBox=null; }
+      else if(v==='(') ab.depth++;
+      else if(v===')'){ if(ab.depth>0) ab.depth--; else if(this.cur.i===ab.row.length){ this.autoBox=null; this.move(1); return; } }
+    }
+    this.ins(C(v)); this.changed();
+  }
   insPow(str){ this.ins({t:'pow',a:chars(str)}); this.changed(); }
   insRow(row){ row.forEach(n=>this.ins(n)); this.changed(); }
   insInto(node,row){ this.ins(node); this.cur={row,i:0}; this.changed(); }
@@ -1018,8 +1043,10 @@ class Editor{
       if(s.endsWith(nm)){
         const st=this.cur.i-nm.length; row.splice(st,nm.length); this.cur.i=st;
         const a=TYPEDMAP[nm];
-        if(a[0]==='s') return this.struct(a.slice(2));
-        this.ins(C(a.slice(2))); break;
+        if(a[0]==='s'){ this.struct(a.slice(2)); if(a==='s:sqrt'||a==='s:abs') this.autoBox={row:this.cur.row,open:false}; return; }
+        this.ins(C(a.slice(2))); this.changed();
+        if(a.endsWith('(')) this.autoParen={row,i:this.cur.i};
+        return;
       }
     }
     this.changed();
@@ -1225,12 +1252,15 @@ const NUM=[
  {l:'1',a:'c:1',l2:'CNST',a2:'t:const'},{l:'2',a:'c:2',l2:'CONV',a2:'t:convert'},{l:'3',a:'c:3',l2:'abs',a2:'s:abs'},{l:'+',a:'c:+',l2:'►DEC',a2:'b:10'},{l:'−',a:'c:−',l2:'►HEX',a2:'b:16'},
  {l:'0',a:'c:0',l2:'OTHER',a2:'t:funcs'},{l:'.',a:'c:.',l2:'ran#',a2:'c:Ran#'},{l:'+/−',a:'neg',l2:'Ans',a2:'c:Ans'},{l:'EXP',a:'exp10',l2:'EXP SI',a2:'t:const'},{l:'=',a:'eq',c:'eq',l2:'=,&lt;,&gt;',a2:'rel'}
 ];
+/* a short tap on each key press in the Android app; the app passes it to Android's own keyboard-tap feedback */
+const HAPTIC=typeof window!=='undefined'&&window.AndroidHaptics&&typeof window.AndroidHaptics.tap==='function'?window.AndroidHaptics:null;
+function haptic(){ if(HAPTIC&&S.haptic) try{ HAPTIC.tap(); }catch(e){} }
 function buildKeys(host,defs){
   defs.forEach(d=>{
     const b=el('button','k'+(d.c?' '+d.c:'')+(d.a2?' has2':'')); b.type='button'; if(d.id) b.id=d.id;
     const lab=t=>(t||'').replace(/▫/g,PH);
     b.innerHTML='<span class="k2">'+lab(d.l2)+'</span><span class="k1">'+lab(d.l)+'</span>';
-    b.addEventListener('pointerdown',e=>e.preventDefault());
+    b.addEventListener('pointerdown',e=>{ e.preventDefault(); haptic(); });
     b.addEventListener('click',()=>act(shift&&d.a2?d.a2:d.a));
     host.appendChild(b);
   });
@@ -1338,6 +1368,7 @@ function renderTools(){
     B.appendChild(seg('Complex mode',[[false,'Off'],[true,'On']],S.cplx,v=>setting('cplx',v)));
     B.appendChild(seg('Complex answers',[[false,'a + bi'],[true,'r∠θ']],S.polar,v=>setting('polar',v)));
     para('With complex mode off, an expression still gives a complex answer if it contains i or ∠.');
+    if(HAPTIC){ B.appendChild(seg('Vibrate on key press',[[true,'On'],[false,'Off']],S.haptic,v=>{ setting('haptic',v); if(v) haptic(); })); para('Uses your phone’s touch feedback. If you feel nothing, check that touch vibration is on in Android’s sound and vibration settings.'); }
   }else if(toolTab==='funcs'){
     h('Rounding and parts');
     btnRow([['floor(','c:floor(','Round down'],['ceil(','c:ceil(','Round up'],['round(','c:round(','Round to nearest whole number'],['ipart(','c:ipart(','Whole part'],['fpart(','c:fpart(','Fractional part'],['sign(','c:sign(','−1, 0 or 1']]);
@@ -1625,7 +1656,7 @@ let saveT=0;
 function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem('natcalc-v1',JSON.stringify({S,view,fns:fns.map(o=>({row:o.row,on:o.on}))})); }catch(e){} },300); }
 function load(){ try{ const d=JSON.parse(localStorage.getItem('natcalc-v1')); if(!d||!Array.isArray(d.fns)) return false;
   if(d.S) Object.assign(S,d.S); else { S.ang=d.deg===false?'rad':'deg'; S.dec=!!d.dec; }
-  if(!ANG.includes(S.ang)) S.ang='deg'; if(!FMT.includes(S.fmt)) S.fmt='norm';
+  if(!ANG.includes(S.ang)) S.ang='deg'; if(typeof S.haptic!=='boolean') S.haptic=true; if(!FMT.includes(S.fmt)) S.fmt='norm';
   d.fns.slice(0,6).forEach(f=>fns.push({row:f.row||[],on:f.on!==false}));
   if(d.view&&d.view.x0<d.view.x1&&d.view.y0<d.view.y1){ view=d.view; viewLoaded=true; } return true; }catch(e){ return false; } }
 

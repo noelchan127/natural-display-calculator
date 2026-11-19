@@ -2,6 +2,11 @@
    Uses globals from index.html (engine + editor) and the nerdamer algebra library when it has loaded. */
 const NJ=typeof nerdamer!=='undefined'?nerdamer:null;
 if(NJ){ try{ NJ.setFunction('nroot',['n','a'],'a^(1/n)'); NJ.setFunction('logb',['b','a'],'log(a)/log(b)'); }catch(e){} }
+/* nerdamer's solve() switches on its decimal mode and leaves it on when it throws (for example on x + 1 = x),
+   which turns every later exact answer into a long fraction; put its settings back after every call */
+if(NJ&&NJ.solve&&NJ.getCore){ const raw=NJ.solve, raw2=NJ.solveEquations, Sx=NJ.getCore().Settings;
+  const safe=f=>function(){ const keep=Object.assign({},Sx); try{ return f.apply(this,arguments); } finally{ for(const k in keep) if(typeof keep[k]!=='object'&&typeof keep[k]!=='function') Sx[k]=keep[k]; } };
+  NJ.solve=safe(raw); if(raw2) NJ.solveEquations=safe(raw2); }
 
 /* ---------- calculator row -> algebra-library text ---------- */
 const CASFN={ln:'log',log:'log10'};
@@ -496,8 +501,6 @@ function runAlg(op){ return guard('alg',()=>{
   }
   const parts=src.split('='); if(parts.length>2) throw new SolveError('Use a single = sign.');
   const p=parts.length===2?'('+parts[0]+')-('+parts[1]+')':src, steps=[];
-  let roots=[]; try{ roots=listOf(NJ.solve(parts.length===2?src:src+'=0',v).toString()); }catch(e){}
-  let approx=false; const rootRows=roots.map(r=>{ if(/^-?\d{6,}\/\d{5,}$/.test(r)){ approx=true; return decRow(decOf(r)); } return casRow(r); });
   let cf=null; try{ const ex=NJ('expand('+p+')').toString(), c=listOf(NJ('coeffs('+ex+','+v+')').toString());
     const chk=parseCAS(c.map((x,k)=>'('+x+')*'+v+'^'+k).join('+')); if(c.length>1&&c.every(x=>free(parseCAS(x),v))&&sameFn(chk,parseCAS(p),v)) cf={c,ex}; }catch(e){}
   if(cf){
@@ -508,27 +511,142 @@ function runAlg(op){ return guard('alg',()=>{
       const [c0,b,a]=cf.c, disc=NJ('('+b+')^2-4*('+a+')*('+c0+')').toString(), dv=decOf(disc);
       steps.push({label:'Identify the coefficients of a'+v+'² + b'+v+' + c = 0',row:[C('a'),C('='),...casRow(a),C(','),C(' '),C('b'),C('='),...casRow(b),C(','),C(' '),C('c'),C('='),...casRow(c0)]});
       let fac=null; try{ fac=NJ('factor('+cf.ex+')').toString(); }catch(e){}
-      if(fac&&/\)\*\(|\)\^/.test(fac)&&!/sqrt|\^\(?1\/2/.test(fac)) steps.push({label:'It factorises, so each bracket can be set to zero',row:eqRow(casRow(fac),[C('0')])});
+      if(fac&&reallyFactors(fac,v)&&!/sqrt|\^\(?1\/2/.test(fac)) steps.push({label:'It factorises, so each bracket can be set to zero',row:eqRow(casRow(fac),[C('0')])});
       steps.push({label:'Discriminant: Δ = b² − 4ac',row:eqRow([C('Δ')],casRow(disc))});
-      if(dv!==null) steps.push({label:dv>0?'Δ is positive, so there are two real solutions':dv===0?'Δ is zero, so there is one repeated solution':'Δ is negative, so the solutions are complex'});
+      if(dv!==null) steps.push({label:dv>1e-12?'Δ is positive, so there are two real solutions':Math.abs(dv)<=1e-12?'Δ is zero, so there is one repeated solution':'Δ is negative, so the solutions are complex'});
       steps.push({label:'Quadratic formula',row:[C(v),C('='),{t:'frac',a:[...casRow('-('+b+')'),C('±'),{t:'sqrt',a:casRow(disc)}],b:casRow('2*('+a+')')}]});
     }else{
       let fac=null; try{ fac=NJ('factor('+cf.ex+')').toString(); }catch(e){}
-      if(fac&&/\)\*\(|\)\^|\*\(/.test(fac)) steps.push({label:'Factorise, then set each factor to zero',row:eqRow(casRow(fac),[C('0')])});
-      else steps.push({label:'This degree-'+n+' polynomial has no simple factorisation; the roots come from the algebra engine'});
+      if(fac&&reallyFactors(fac,v)) steps.push({label:'Factorise, then set each factor to zero',row:eqRow(casRow(fac),[C('0')])});
+      else steps.push({label:'This degree-'+n+' polynomial has no simple factorisation, so its roots are found numerically'});
     }
   }
-  if(!rootRows.length){
-    if(v==='x'&&parts.length===2){ const r=evaluate(st.row); if(r&&r.sol&&r.sol.length){ return {blocks:[{title:'Solutions (numerical)',row:valueRow(r,{exact:true,src:''})}],steps,note:'No exact solution was found; these are numerical roots between −600 000 and 600 000.'}; } }
-    throw new SolveError('No solution was found for '+v+'.');
+  const pa=parseCAS(p), numericOnly=onlyNum(pa,v);
+  let res=null;
+  if(cf&&numericOnly) res=polySolve(cf.ex,v);
+  else if(numericOnly) res=funcSolve(parts.length===2?src:src+'=0',pa,v);
+  else{
+    /* letters other than the unknown: only the algebra engine can answer, so keep its real, exact-looking roots */
+    let roots=[]; try{ roots=listOf(NJ.solve(parts.length===2?src:src+'=0',v).toString()); }catch(e){}
+    roots=roots.filter(r=>!hasSym(parseCAS(r),'i')&&!BIGRAT.test(r));
+    res={sols:roots.map(r=>({row:casRow(r),re:NaN,im:0})),numeric:false};
   }
-  const row=[C(v),C('=')]; rootRows.forEach((r,i)=>{ if(i) row.push(C(','),C(' ')); row.push(...r); });
-  if(cf) steps.push({label:roots.length>1?'Solutions':'Solution',row});
-  const decs=roots.map(decOf), anyDec=!approx&&roots.some(r=>!rat(parseCAS(r)))&&decs.every(d=>d!==null);
-  const blocks=[{title:roots.length>1?'Solutions':'Solution',row,send:rootRows.length===1?rootRows[0]:null}];
-  if(anyDec){ const dr=[C(v),C('≈')]; decs.forEach((d,i)=>{ if(i) dr.push(C(','),C(' ')); dr.push(...decRow(d)); }); blocks.push({title:'Decimal',row:dr}); }
-  return {blocks,steps,note:approx?'This equation has no simple exact form; the engine returned numerical solutions, and there may be more.':(cf?'':'Worked steps are only available for polynomial equations; these solutions come from the algebra engine.')};
+  const sols=res.sols;
+  if(!sols.length) throw new SolveError(numericOnly?'No solution was found for '+v+'. Checked: real values between about −600 000 and 600 000'+(cf?' and complex roots of the polynomial':'')+'.':'No solution was found for '+v+'.');
+  const row=[C(v),C('=')]; if(res.before) row.push(C('…'),C(','),C(' '));
+  sols.forEach((r,i)=>{ if(i) row.push(C(','),C(' ')); row.push(...r.row); });
+  if(res.after) row.push(C(','),C(' '),C('…'));
+  if(cf) steps.push({label:sols.length>1?'Solutions':'Solution',row});
+  const blocks=[{title:sols.length>1?'Solutions':'Solution',row,send:sols.length===1?sols[0].row:null}];
+  const whole=x=>Math.abs(x-Math.round(x))<1e-12;
+  if(sols.some(r=>!r.dec&&Number.isFinite(r.re)&&!(whole(r.re)&&whole(r.im)))){ const dr=[C(v),C('≈')]; sols.forEach((r,i)=>{ if(i) dr.push(C(','),C(' ')); dr.push(...cplxDec(r.re,r.im)); }); blocks.push({title:'Decimal',row:dr}); }
+  let note='';
+  if(res.scan) note='Found numerically: '+(sols.length>1?'these are the real solutions nearest 0':'this is the only real solution found between about −600 000 and 600 000')+(res.before||res.after?'. There are more, for example because the equation repeats periodically':'')+'.'+(/sin|cos|tan|sec|csc|cot/.test(src)?' Trigonometric functions here use radians.':'');
+  else if(res.numeric) note='Some roots have no simple exact form, so they were found numerically and are shown as decimals.';
+  else if(!cf) note='Worked steps are only available for polynomial equations; these solutions come from the algebra engine.';
+  if(res.complex) note=(note?note+' ':'')+'Complex roots are included because the polynomial has fewer real roots than its degree.';
+  return {blocks,steps,note};
 }); }
+
+/* ---------- reliable roots ----------
+   The algebra library's solve() returns wrong complex roots (x² + 1 = 0 gives ±i/2) and rational
+   approximations in place of surds, so roots are worked out here and every one is checked numerically. */
+const BIGRAT=/^-?\d{6,}\/\d{5,}$/;
+const syms=(a,out=new Set())=>{ if(a.k==='sym') out.add(a.n); else (a.a instanceof Array?a.a:[a.a,a.b].filter(Boolean)).forEach(t=>syms(t,out)); return out; };
+const hasSym=(a,n)=>syms(a).has(n);
+const onlyNum=(a,v)=>[...syms(a)].every(n=>n===v||n==='pi'||n==='e');
+const cplxDec=(re,im)=>{ const r=[]; if(Math.abs(im)<=1e-12*(1+Math.abs(re))) return decRow(re);
+  if(Math.abs(re)>1e-12*Math.abs(im)) r.push(...decRow(re));
+  if(im<0) r.push(C('−')); else if(r.length) r.push(C('+'));
+  const a=Math.abs(im); if(Math.abs(a-1)>1e-12) r.push(...decRow(a)); r.push(C('i')); return r; };
+const realRow=x=>{ const e=exactRow(x,'π sqrt'); return e?{row:e,dec:false}:{row:decRow(x),dec:true}; };
+/* all complex roots of a polynomial with numeric coefficients c[0..n] (c[k] multiplies x^k): Durand–Kerner, then Newton */
+function numRoots(c){
+  c=c.slice(); while(c.length>1&&c[c.length-1]===0) c.pop();
+  const n=c.length-1; if(n<1) return [];
+  let lead=0; while(lead<n&&c[lead]===0) lead++;           /* factor out x^lead: roots at 0 */
+  const zeros=Array.from({length:lead},()=>({re:0,im:0})); c=c.slice(lead); const m=c.length-1; if(m<1) return zeros;
+  const a=c.map(x=>x/c[m]);
+  const ev=w=>{ let pr=1,pi=0,dr=0,di=0; for(let k=m-1;k>=0;k--){ const nr=dr*w.re-di*w.im+pr, ni=dr*w.im+di*w.re; dr=nr; di=ni; const qr=pr*w.re-pi*w.im+a[k], qi=pr*w.im+pi*w.re; pr=qr; pi=qi; } return {pr,pi,dr,di}; };
+  const R=1+Math.max(...a.slice(0,m).map(Math.abs));
+  let z=Array.from({length:m},(_,k)=>({re:R*Math.cos(2*Math.PI*k/m+0.4)*0.7,im:R*Math.sin(2*Math.PI*k/m+0.4)*0.7}));
+  for(let it=0;it<800;it++){ let mv=0;
+    z=z.map((w,i)=>{ const {pr,pi}=ev(w); let er=1,ei=0; z.forEach((u,j)=>{ if(j===i) return; const xr=w.re-u.re, xi=w.im-u.im, t=er*xr-ei*xi; ei=er*xi+ei*xr; er=t; });
+      const d=er*er+ei*ei||1e-300, qr=(pr*er+pi*ei)/d, qi=(pi*er-pr*ei)/d; mv=Math.max(mv,Math.hypot(qr,qi)/(1+Math.hypot(w.re,w.im))); return {re:w.re-qr,im:w.im-qi}; });
+    if(mv<1e-16) break; }
+  z=z.map(w=>{ for(let i=0;i<4;i++){ const {pr,pi,dr,di}=ev(w), d=dr*dr+di*di; if(!d) break; const nw={re:w.re-(pr*dr+pi*di)/d,im:w.im-(pi*dr-pr*di)/d}; if(!Number.isFinite(nw.re)||!Number.isFinite(nw.im)) break; w=nw; } return w; });
+  return zeros.concat(z.map(w=>Math.abs(w.im)<=1e-9*(1+Math.abs(w.re))?{re:w.re,im:0}:w));
+}
+const coeffNums=(ex,v)=>{ const cs=listOf(NJ('coeffs('+ex+','+v+')').toString()); const ns=cs.map(decOf); if(ns.some(x=>x===null)) throw new SolveError('The coefficients could not be evaluated.'); return {cs,ns}; };
+function polyVal(ns,z){ let r=0,i=0,sz=0; for(let k=ns.length-1;k>=0;k--){ const t=r*z.re-i*z.im+ns[k]; i=r*z.im+i*z.re; r=t; sz=sz*Math.hypot(z.re,z.im)+Math.abs(ns[k]); } return {r:Math.hypot(r,i),scale:sz}; }
+/* the factors of a factorised expression that contain v, as {base, pw}: (x-1)^3*(x+2) -> [x-1 ×3, x+2 ×1] */
+function factorsOf(str,v){
+  const out=[], walk=a=>{
+    if(a.k==='neg') return walk(a.a);
+    if(a.k==='mul') return a.a.forEach(walk);
+    if(a.k==='div'){ walk(a.a); if(!free(a.b,v)) throw new Error('not a polynomial'); return; }
+    if(free(a,v)) return;
+    if(a.k==='pow'){ const r=rat(a.b); if(r&&r.q===1&&r.p>0) return out.push({base:astStr(a.a),pw:r.p}); }
+    out.push({base:astStr(a),pw:1});
+  };
+  walk(parseCAS(str)); return out;
+}
+const reallyFactors=(fac,v)=>{ try{ const f=factorsOf(fac,v); return f.length>1||f.some(o=>o.pw>1); }catch(e){ return false; } };
+/* roots of a polynomial in v given as an expanded expression; exact for linear and quadratic factors */
+function polySolve(ex,v){
+  const all=coeffNums(ex,v), sols=[]; let numeric=false;
+  const same=(p,q)=>Math.abs(p.re-q.re)+Math.abs(p.im-q.im)<=1e-7*(1+Math.hypot(p.re,p.im));
+  const put=s=>{ if(!Number.isFinite(s.re)||!Number.isFinite(s.im)) return; const ch=polyVal(all.ns,s); if(ch.r>1e-7*(1+ch.scale)) return; if(!sols.some(t=>same(t,s))) sols.push(s); };
+  const exactOr=(str,x)=>{ const d=decOf(str); return d!==null&&Math.abs(d-x)<=1e-9*(1+Math.abs(x))&&!BIGRAT.test(str)?{row:casRow(str),dec:false}:realRow(x); };
+  const solveFactor=f=>{
+    let cs,ns; try{ ({cs,ns}=coeffNums(NJ('expand('+f+')').toString(),v)); }catch(e){ return -1; }
+    while(ns.length>1&&ns[ns.length-1]===0){ ns.pop(); cs.pop(); }
+    const n=ns.length-1; if(n<1) return 0;
+    if(ns.slice(0,n).every(x=>x===0)){ put({re:0,im:0,row:[C('0')],dec:false}); return n; }
+    if(n===1){ const x=-ns[0]/ns[1]; put({re:x,im:0,...exactOr(NJ('-('+cs[0]+')/('+cs[1]+')').toString(),x)}); return 1; }
+    if(n===2){
+      const [c0,b,a]=ns, D=b*b-4*a*c0, ds=NJ('('+cs[1]+')^2-4*('+cs[2]+')*('+cs[0]+')').toString();
+      if(Math.abs(D)<=1e-13*(b*b+Math.abs(4*a*c0))){ const x=-b/(2*a); put({re:x,im:0,...exactOr(NJ('-('+cs[1]+')/(2*('+cs[2]+'))').toString(),x)}); return 2; }
+      if(D>0){ [1,-1].forEach(sg=>{ const x=(-b+sg*Math.sqrt(D))/(2*a); put({re:x,im:0,...exactOr(NJ('(-('+cs[1]+')'+(sg>0?'+':'-')+'sqrt('+ds+'))/(2*('+cs[2]+'))').toString(),x)}); }); return 2; }
+      const re=-b/(2*a), im=Math.sqrt(-D)/Math.abs(2*a);
+      let reS=null, imS=null; try{ reS=NJ('-('+cs[1]+')/(2*('+cs[2]+'))').toString(); imS=NJ('sqrt(-('+ds+'))/abs(2*('+cs[2]+'))').toString(); }catch(e){}
+      const okS=(s,x)=>s&&!BIGRAT.test(s)&&decOf(s)!==null&&Math.abs(decOf(s)-x)<=1e-9*(1+Math.abs(x));
+      [1,-1].forEach(sg=>{
+        let row;
+        if(okS(reS,re)&&okS(imS,im)){ row=[]; if(Math.abs(re)>1e-14) row.push(...casRow(reS)); row.push(C(sg>0?(row.length?'+':''):'−')); if(Math.abs(im-1)>1e-14) row.push(...casRow(imS)); row.push(C('i')); row=row.filter(n=>!(n.t==='c'&&n.v==='')); }
+        else row=cplxDec(re,sg*im);
+        put({re,im:sg*im,row,dec:!(okS(reS,re)&&okS(imS,im))});
+      });
+      return 2;
+    }
+    numRoots(ns).forEach(z=>{ numeric=true; put(z.im===0?{re:z.re,im:0,...realRow(z.re)}:{re:z.re,im:z.im,row:cplxDec(z.re,z.im),dec:true}); });
+    return n;
+  };
+  let fac=null; try{ fac=NJ('factor('+ex+')').toString(); }catch(e){}
+  /* split the factorised form into factors, each with its power, e.g. (x-1)^3*(x+2) */
+  const deg=all.ns.length-1; let parts=[]; try{ if(fac) parts=factorsOf(fac,v); }catch(e){ parts=[]; }
+  let covered=0; for(const o of parts){ const d=solveFactor(o.base); if(d<0){ covered=-1; break; } covered+=d*o.pw; }
+  if(covered!==deg){ sols.length=0; numeric=false; solveFactor(ex); }
+  sols.sort((p,q)=>(p.im!==0)-(q.im!==0)||p.re-q.re||q.im-p.im);
+  return {sols,numeric,complex:sols.some(s=>s.im!==0)};
+}
+/* real roots of a general equation: exact ones from the algebra engine if they check out, plus a numerical scan */
+function funcSolve(eq,pa,v){
+  const fx=x=>evalAst(pa,{[v]:x}), sols=[];
+  const put=s=>{ if(!sols.some(t=>Math.abs(t.re-s.re)<=1e-7*(1+Math.abs(s.re)))) sols.push(s); };
+  let roots=[]; try{ roots=listOf(NJ.solve(eq,v).toString()); }catch(e){}
+  roots.forEach(r=>{ if(BIGRAT.test(r)) return; let a; try{ a=parseCAS(r); }catch(e){ return; } if(hasSym(a,'i')) return; const x=decOf(r); if(x===null) return;
+    const y=fx(x), sc=Math.abs(fx(x+1e-6*(1+Math.abs(x))))+1; if(Number.isFinite(y)&&Math.abs(y)<=1e-8*sc) put({re:x,im:0,row:casRow(r),dec:false}); });
+  const old=V.x; let found=[]; try{ found=solve(()=>fx(V.x),()=>0); }finally{ V.x=old; }
+  const nice=x=>{ const e=exactRow(x,'π sqrt'); if(e) return {row:e,dec:false};
+    let r=ratApprox(x,12,1e-9); if(r&&r[1]>1) return {row:frow(fr(r[0],r[1])),dec:false}; if(r) return {row:decRow(r[0]),dec:true};
+    r=ratApprox(x/Math.PI,12,1e-9); if(r){ const nu=[...(Math.abs(r[0])===1?[]:chars(Math.abs(r[0]))),C('π')], b=r[1]===1?nu:[{t:'frac',a:nu,b:chars(r[1])}]; return {row:r[0]<0?[C('−'),...b]:b,dec:false}; }
+    return {row:decRow(x),dec:true}; };
+  found.forEach(x=>put({re:x,im:0,...nice(x)}));
+  sols.sort((p,q)=>Math.abs(p.re)-Math.abs(q.re));
+  const keep=sols.slice(0,8).sort((p,q)=>p.re-q.re), lo=Math.min(...sols.map(s=>s.re)), hi=Math.max(...sols.map(s=>s.re));
+  return {sols:keep,scan:true,before:keep.length&&keep[0].re>lo,after:keep.length&&keep[keep.length-1].re<hi};
+}
 
 /* matrix */
 function readMat(which){
@@ -567,20 +685,10 @@ function runMat(op){ return guard('mat',()=>{
     PV='λ'; const pe=NJ('expand('+poly+')').toString();
     steps.push({label:'Characteristic equation: det(A − λI) = 0',row:eqRow(P(ren(parseCAS(pe))),[C('0')])});
     const row=[C('λ'),C('=')], sep=i=>{ if(i) row.push(C(','),C(' ')); };
-    if(n<3){
-      const roots=listOf(NJ.solve(poly+'=0','x').toString()); if(!roots.length) throw new SolveError('The eigenvalues could not be found.');
-      roots.forEach((r,i)=>{ sep(i); row.push(...(/^-?\d{6,}\/\d{5,}$/.test(r)?decRow(decOf(r)):casRow(r))); });
-    }else{
-      const pa=parseCAS(pe), pf=x=>evalAst(pa,{x}), a2=-tr.n/tr.d;
-      let lo=-1, hi=1; while(pf(lo)>0) lo*=2; while(pf(hi)<0) hi*=2;
-      for(let k=0;k<200;k++){ const m=(lo+hi)/2; if(pf(m)<0) lo=m; else hi=m; }
-      const r1=(lo+hi)/2, a1=(pf(1)-pf(-1))/2-1, p1=a2+r1, q=a1+r1*p1, disc=p1*p1-4*q;
-      const real=x=>{ const t=ratApprox(x,9999,1e-9); if(t) return frow(fr(t[0],t[1])); numeric=true; return decRow(x); };
-      if(disc>=-1e-10){ const sq=Math.sqrt(Math.max(0,disc)); [r1,(-p1+sq)/2,(-p1-sq)/2].sort((x,y)=>y-x).forEach((x,i)=>{ sep(i); row.push(...real(x)); }); }
-      else{ numeric=true; const re=-p1/2, im=Math.sqrt(-disc)/2; row.push(...real(r1)); [1,-1].forEach(sn=>{ row.push(C(','),C(' '),...decRow(re),C(sn>0?'+':'−'),...decRow(im),C('i')); }); }
-    }
+    const pr=polySolve(pe,'x'); numeric=pr.numeric; if(!pr.sols.length) throw new SolveError('The eigenvalues could not be found.');
+    pr.sols.forEach((r,i)=>{ sep(i); row.push(...r.row); });
     steps.push({label:'Solve for λ',row}); PV='x';
-    return res('Eigenvalues',row,null,numeric?'The 3 × 3 eigenvalues were found numerically and are shown as decimals.':'');
+    return res('Eigenvalues',row,null,numeric?'Some eigenvalues have no simple exact form, so they were found numerically and are shown as decimals.':'');
   }
   const Bm=readMat('B');
   if(op==='add'||op==='sub'){ if(Am.length!==Bm.length||Am[0].length!==Bm[0].length) throw new SolveError('A and B must be the same size to add or subtract.'); const R=Am.map((r,i)=>r.map((x,j)=>(op==='add'?fadd:fsub)(x,Bm[i][j]))); return res(op==='add'?'Sum':'Difference',lab(op==='add'?'A + B':'A − B',R),[matNode(R)],'Add or subtract matching entries.'); }
