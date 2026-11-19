@@ -21,6 +21,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
 
 /** Hosts the calculator page from the app's assets in a full-screen WebView. */
@@ -29,6 +30,11 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://" + HOST + "/assets/index.html";
 
     private WebView web;
+    private FrameLayout root;
+
+    // The page's background colours (--bg in the page), used for the system bars and behind the page.
+    private static final int LIGHT_BG = 0xFFE6EBF1;
+    private static final int DARK_BG = 0xFF0E1216;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,7 +42,7 @@ public class MainActivity extends Activity {
         // Draw edge to edge on every Android version; the insets listener below adds the padding.
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
-        FrameLayout root = new FrameLayout(this);
+        root = new FrameLayout(this);
         web = new WebView(this);
         root.addView(web, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -95,6 +101,8 @@ public class MainActivity extends Activity {
         // Key-press haptics: the page calls AndroidHaptics.tap() as each keypad key goes down.
         web.setHapticFeedbackEnabled(true);
         web.addJavascriptInterface(new Haptics(), "AndroidHaptics");
+        // Light/Dark chosen in the page's settings: the page tells the app so the system bars match.
+        web.addJavascriptInterface(new Theme(), "AndroidTheme");
 
         if (savedInstanceState == null || web.restoreState(savedInstanceState) == null) {
             web.loadUrl(START_URL);
@@ -108,6 +116,28 @@ public class MainActivity extends Activity {
             final WebView w = web;
             if (w != null) w.post(() -> w.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP));
         }
+    }
+
+    /** Exposed to the page; colours the status and navigation bars (and their icons) to match the page's theme. */
+    private final class Theme {
+        @JavascriptInterface
+        public void setDark(final boolean dark) {
+            runOnUiThread(() -> applyBars(dark));
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private void applyBars(boolean dark) {
+        int bg = dark ? DARK_BG : LIGHT_BG;
+        getWindow().getDecorView().setBackgroundColor(bg);
+        if (root != null) root.setBackgroundColor(bg);
+        if (web != null) web.setBackgroundColor(bg);
+        // Only has an effect before Android 15; from 15 the bars are transparent and show the background above.
+        getWindow().setStatusBarColor(bg);
+        getWindow().setNavigationBarColor(bg);
+        WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        bars.setAppearanceLightStatusBars(!dark);
+        bars.setAppearanceLightNavigationBars(!dark);
     }
 
     @Override

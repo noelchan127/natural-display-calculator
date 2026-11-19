@@ -3,7 +3,7 @@
 // Hide the console window on Windows release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{Url, WebviewWindowBuilder};
+use tauri::{Theme, Url, WebviewWindow, WebviewWindowBuilder};
 
 /// The calculator page itself (served by Tauri from the app's files).
 fn is_app_page(url: &Url) -> bool {
@@ -27,8 +27,21 @@ fn open_in_browser(url: &Url) {
     }
 }
 
+/// Called by the page when Light/Dark is chosen in its settings, so the title bar matches.
+/// Anything other than "light" or "dark" means follow Windows.
+#[tauri::command]
+fn set_theme(window: WebviewWindow, theme: String) {
+    let t = match theme.as_str() {
+        "light" => Some(Theme::Light),
+        "dark" => Some(Theme::Dark),
+        _ => None,
+    };
+    let _ = window.set_theme(t);
+}
+
 fn main() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![set_theme])
         .setup(|app| {
             // The window is described in tauri.conf.json ("create": false) and built here so that
             // navigation away from the calculator can be caught and sent to the browser instead.

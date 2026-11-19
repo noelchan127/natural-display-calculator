@@ -4,6 +4,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* apply a chosen Light/Dark theme before the page is drawn, so it never flashes the other one */
+try{ var d=JSON.parse(localStorage.getItem('natcalc-v1')), t=d&&d.S&&d.S.theme; if(t==='light'||t==='dark') document.documentElement.setAttribute('data-theme',t); }catch(e){}
+</script>
 <title>Natural Display Calculator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -359,7 +363,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 <script id="engine">
 /* ---------- math engine (no DOM) ---------- */
 const V={x:0,y:0,A:0,B:0,C:0,D:0,M:0,Ans:0};
-const S={ang:'deg',cplx:false,polar:false,fmt:'norm',digits:4,mixed:false,dec:false,haptic:true};
+const S={ang:'deg',cplx:false,polar:false,fmt:'norm',digits:4,mixed:false,dec:false,haptic:true,theme:'system'};
 let CMODE=false;
 const KIDS={frac:['a','b'],sqrt:['a'],root:['n','a'],pow:['a'],abs:['a'],logb:['b','a'],int:['lo','hi','a'],ddx:['a','x'],sum:['lo','hi','a'],prod:['lo','hi','a'],lim:['x','a'],mix:['w','a','b'],rec:['a']};
 const kidsOf=n=>n.t==='mat'?n.cells:(KIDS[n.t]||[]).map(k=>n[k]);
@@ -1341,6 +1345,18 @@ const APP={public:false,authorUrl:'https://github.com/noelchan127',repoUrl:'http
 APP.releasesUrl=APP.repoUrl+'/releases/latest'; APP.licenseUrl=APP.repoUrl+'/blob/main/LICENSE';
 /* where this copy is running: the Android app exposes its haptics bridge, the Windows app is served from tauri.localhost */
 const PLATFORM=(typeof window!=='undefined'&&window.AndroidHaptics)?'android':(typeof location!=='undefined'&&location.hostname==='tauri.localhost')?'windows':'web';
+/* Light/Dark/Match system. The CSS keys off data-theme on <html>; the apps are told too so the
+   Android system bars and the Windows title bar match the page. */
+const isDark=()=>S.theme==='dark'||(S.theme==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);
+function tellPlatformTheme(){
+  try{ if(window.AndroidTheme&&typeof AndroidTheme.setDark==='function') AndroidTheme.setDark(isDark()); }catch(e){}
+  try{ const T=window.__TAURI_INTERNALS__; if(PLATFORM==='windows'&&T&&typeof T.invoke==='function') T.invoke('set_theme',{theme:S.theme}).catch(()=>{}); }catch(e){}
+}
+function applyTheme(){
+  const r=document.documentElement;
+  if(S.theme==='light'||S.theme==='dark') r.setAttribute('data-theme',S.theme); else r.removeAttribute('data-theme');
+  tellPlatformTheme();
+}
 /* "Label: link" line. In a browser the link opens a new tab; in the apps a plain link is handed to the system browser. */
 function linkLine(label,text,url,gap){
   const p=el('p','abt-line'+(gap?' abt-gap':'')), a=el('a',null,text);
@@ -1355,7 +1371,7 @@ function systemInfo(){
   const n=navigator, sc=screen, plat={android:'Android app',windows:'Windows app',web:location.protocol==='file:'?'Offline web page':'Web page'}[PLATFORM];
   return ['Natural Display Calculator '+APP_VERSION, 'Platform: '+plat, 'Browser engine: '+n.userAgent,
     'Screen: '+sc.width+'×'+sc.height+' at '+(window.devicePixelRatio||1)+'× scale; window '+innerWidth+'×'+innerHeight,
-    'Language: '+(n.language||'?'), 'Layout: '+(matchMedia('(min-width:900px)').matches?'wide':'narrow')+', '+(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')+' theme',
+    'Language: '+(n.language||'?'), 'Layout: '+(matchMedia('(min-width:900px)').matches?'wide':'narrow')+', '+(isDark()?'dark':'light')+' theme ('+(S.theme==='system'?'matching system':'chosen')+')',
     'Settings: angle '+S.ang+', format '+S.fmt+(S.fmt==='norm'?'':' '+S.digits)+', answers '+(S.dec?'decimal':'exact')+', complex '+(S.cplx?'on':'off')+(S.polar?' (polar)':'')+', mixed fractions '+(S.mixed?'on':'off')+(PLATFORM==='android'?', vibration '+(S.haptic?'on':'off'):'')].join('\n');
 }
 /* clipboard API where allowed, otherwise the older select-and-copy route (file:// pages, some WebViews) */
@@ -1420,6 +1436,7 @@ function renderTools(){
   const h=t=>B.appendChild(el('h2','',t)), para=t=>B.appendChild(el('p','',t));
   const btnRow=items=>{ const r=el('div','trow'); items.forEach(([t,a,title])=>{ const b=el('button','btn',t); b.type='button'; if(title) b.title=title; b.onclick=typeof a==='function'?a:()=>insertAnd(a); r.appendChild(b); }); B.appendChild(r); return r; };
   if(toolTab==='settings'){
+    B.appendChild(seg('Theme',[['system','Match system'],['light','Light'],['dark','Dark']],S.theme,v=>{ S.theme=v; applyTheme(); save(); }));
     B.appendChild(seg('Angle unit',[['deg','Degrees'],['rad','Radians'],['grad','Gradians']],S.ang,v=>setting('ang',v)));
     B.appendChild(seg('Answers',[[false,'Exact where possible'],[true,'Decimal']],S.dec,v=>{ hist.forEach(it=>{ it.useExact=!v; }); setting('dec',v); }));
     B.appendChild(seg('Fractions',[[false,'Improper'],[true,'Mixed']],S.mixed,v=>setting('mixed',v)));
@@ -1743,12 +1760,16 @@ new ResizeObserver(resize).observe($('#plotwrap'));
 /* crossing the phone/desktop width can reveal the history or editors that were laid out while hidden */
 let wasWide=matchMedia('(min-width:900px)').matches;
 addEventListener('resize',()=>{ const w=matchMedia('(min-width:900px)').matches; if(histStale) renderHist(); if(w!==wasWide){ wasWide=w; mainEd.render(); fns.forEach(o=>o.ed.render()); } });
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawSoon);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ drawSoon(); if(S.theme==='system') tellPlatformTheme(); });
 new MutationObserver(drawSoon).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
 /* ---------- persistence (this browser only) ---------- */
 let saveT=0;
-function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem('natcalc-v1',JSON.stringify({S,view,fns:fns.map(o=>({row:o.row,on:o.on}))})); }catch(e){} },300); }
+function saveNow(){ clearTimeout(saveT); saveT=null; try{ localStorage.setItem('natcalc-v1',JSON.stringify({S,view,fns:fns.map(o=>({row:o.row,on:o.on}))})); }catch(e){} }
+/* saves are batched for 0.3 s; a pending one is written at once if the app is closed or sent to the background */
+function save(){ clearTimeout(saveT); saveT=setTimeout(saveNow,300); }
+addEventListener('pagehide',()=>{ if(saveT) saveNow(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&saveT) saveNow(); });
 /* Saved data is checked before use: a damaged or edited save must not stop the app from starting or inject markup. */
 function cleanRow(row,depth=0){
   if(!Array.isArray(row)||depth>24) return [];
@@ -1765,6 +1786,7 @@ function load(){ try{ const d=JSON.parse(localStorage.getItem('natcalc-v1')); if
   const ds=d.S&&typeof d.S==='object'?d.S:null;
   if(ds){ for(const k of Object.keys(S)) if(Object.prototype.hasOwnProperty.call(ds,k)&&typeof ds[k]===typeof S[k]) S[k]=ds[k]; }
   else { S.ang=d.deg===false?'rad':'deg'; S.dec=!!d.dec; }
+  if(!['system','light','dark'].includes(S.theme)) S.theme='system';
   if(!ANG.includes(S.ang)) S.ang='deg'; if(!FMT.includes(S.fmt)) S.fmt='norm'; if(!(Number.isInteger(S.digits)&&S.digits>=0&&S.digits<=9)) S.digits=4;
   d.fns.slice(0,6).forEach(f=>{ if(f&&typeof f==='object') fns.push({row:cleanRow(f.row),on:f.on!==false}); });
   const w=d.view, ok=w&&['x0','x1','y0','y1'].every(k=>Number.isFinite(w[k]));
@@ -1776,6 +1798,7 @@ if(!load()){
   fns.push({row:[{t:'frac',a:[C('x'),{t:'pow',a:[C('3')]}],b:[C('8')]},C('−'),C('x')],on:true});
   fns.push({row:[{t:'sqrt',a:[C('x'),C('+'),C('5')]}],on:true});
 }
+applyTheme();
 buildFnList();
 {
   const keep={...S}; Object.assign(S,{ang:'deg',cplx:false,polar:false});

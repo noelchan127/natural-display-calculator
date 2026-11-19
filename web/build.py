@@ -76,9 +76,11 @@ def main():
     texts = {'lic-gpl': read(root, 'LICENSE'), 'lic-3p': read(root, 'THIRD-PARTY-NOTICES.md'),
              'lic-apache': read(root, 'licenses', 'Apache-2.0.txt'), 'lic-mit': read(root, 'licenses', 'MIT.txt')}
     tpl = ''.join(f'<template id="{k}">{html.escape(v, quote=False)}</template>\n' for k, v in texts.items())
-    if page.count('<script id="engine">') != 1:
-        sys.exit('engine script tag not found')
-    page = page.replace('<script id="engine">', tpl + '<script id="engine">', 1)
+    # At the very end of the body: they are only read when the About tab opens, so they must not hold up
+    # parsing of the scripts above them (measured: about 35 ms later start-up on a slow phone otherwise).
+    if page.count('</body>') != 1:
+        sys.exit('</body> not found once')
+    page = page.replace('</body>', tpl + '</body>', 1)
     if page.count('__APP_VERSION__') < 1:
         sys.exit('__APP_VERSION__ placeholder not found')
     page = page.replace('__APP_VERSION__', version)
