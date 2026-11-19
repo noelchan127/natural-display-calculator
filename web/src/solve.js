@@ -1,12 +1,23 @@
 /* Solve view: derivative, integral, algebra, matrix and geometry calculators with worked steps.
    Uses globals from index.html (engine + editor) and the nerdamer algebra library when it has loaded. */
-const NJ=typeof nerdamer!=='undefined'?nerdamer:null;
-if(NJ){ try{ NJ.setFunction('nroot',['n','a'],'a^(1/n)'); NJ.setFunction('logb',['b','a'],'log(a)/log(b)'); }catch(e){} }
-/* nerdamer's solve() switches on its decimal mode and leaves it on when it throws (for example on x + 1 = x),
-   which turns every later exact answer into a long fraction; put its settings back after every call */
-if(NJ&&NJ.solve&&NJ.getCore){ const raw=NJ.solve, raw2=NJ.solveEquations, Sx=NJ.getCore().Settings;
-  const safe=f=>function(){ const keep=Object.assign({},Sx); try{ return f.apply(this,arguments); } finally{ for(const k in keep) if(typeof keep[k]!=='object'&&typeof keep[k]!=='function') Sx[k]=keep[k]; } };
-  NJ.solve=safe(raw); if(raw2) NJ.solveEquations=safe(raw2); }
+/* The algebra library is about 430 KB. The offline build wraps it in window.__loadNerdamer so the browser only
+   skims it at start-up; it runs here on first use, or in the background shortly after the page is up. */
+let NJ=null, njTried=false;
+function getNJ(){
+  if(NJ||njTried) return NJ; njTried=true;
+  let n=null;
+  try{ n=typeof window.__loadNerdamer==='function'?window.__loadNerdamer():(typeof nerdamer!=='undefined'?nerdamer:null); }catch(e){ n=null; }
+  window.__loadNerdamer=null;
+  if(!n) return null;
+  try{ n.setFunction('nroot',['n','a'],'a^(1/n)'); n.setFunction('logb',['b','a'],'log(a)/log(b)'); }catch(e){}
+  /* nerdamer's solve() switches on its decimal mode and leaves it on when it throws (for example on x + 1 = x),
+     which turns every later exact answer into a long fraction; put its settings back after every call */
+  if(n.solve&&n.getCore){ const raw=n.solve, raw2=n.solveEquations, Sx=n.getCore().Settings;
+    const safe=f=>function(){ const keep=Object.assign({},Sx); try{ return f.apply(this,arguments); } finally{ for(const k in keep) if(typeof keep[k]!=='object'&&typeof keep[k]!=='function') Sx[k]=keep[k]; } };
+    n.solve=safe(raw); if(raw2) n.solveEquations=safe(raw2); }
+  return NJ=n;
+}
+(window.requestIdleCallback||(f=>setTimeout(f,1500)))(()=>getNJ(),{timeout:3000});
 
 /* ---------- calculator row -> algebra-library text ---------- */
 const CASFN={ln:'log',log:'log10'};
@@ -402,7 +413,7 @@ const SV={tool:'deriv',
 };
 const TOOLS=[['deriv','Derivative'],['integ','Integral'],['alg','Algebra'],['mat','Matrix'],['geo','Geometry']];
 const host=$('#solve');
-const needLib=()=>{ if(!NJ) throw new SolveError('The algebra library did not load, so symbolic results are unavailable. Check the connection and reload. Matrix and Geometry still work.'); };
+const needLib=()=>{ if(!getNJ()) throw new SolveError('The algebra library did not load, so symbolic results are unavailable. Check the connection and reload. Matrix and Geometry still work.'); };
 const addMath=(parent,row,cls)=>{ const d=el('div','smath'+(cls?' '+cls:'')); parent.appendChild(d); staticMath(d,row); return d; };
 const eqRow=(l,r)=>[...l,C('='),...r];
 const decOf=s=>{ try{ const v=evalAst(parseCAS(s),{}); return Number.isFinite(v)?v:null; }catch(e){ return null; } };
@@ -524,7 +535,7 @@ function runAlg(op){ return guard('alg',()=>{
   const pa=parseCAS(p), numericOnly=onlyNum(pa,v);
   let res=null;
   if(cf&&numericOnly) res=polySolve(cf.ex,v);
-  else if(numericOnly) res=funcSolve(parts.length===2?src:src+'=0',pa,v);
+  else if(numericOnly) res=funcSolve(pa,v);
   else{
     /* letters other than the unknown: only the algebra engine can answer, so keep its real, exact-looking roots */
     let roots=[]; try{ roots=listOf(NJ.solve(parts.length===2?src:src+'=0',v).toString()); }catch(e){}
@@ -631,12 +642,11 @@ function polySolve(ex,v){
   return {sols,numeric,complex:sols.some(s=>s.im!==0)};
 }
 /* real roots of a general equation: exact ones from the algebra engine if they check out, plus a numerical scan */
-function funcSolve(eq,pa,v){
+function funcSolve(pa,v){
   const fx=x=>evalAst(pa,{[v]:x}), sols=[];
   const put=s=>{ if(!sols.some(t=>Math.abs(t.re-s.re)<=1e-7*(1+Math.abs(s.re)))) sols.push(s); };
-  let roots=[]; try{ roots=listOf(NJ.solve(eq,v).toString()); }catch(e){}
-  roots.forEach(r=>{ if(BIGRAT.test(r)) return; let a; try{ a=parseCAS(r); }catch(e){ return; } if(hasSym(a,'i')) return; const x=decOf(r); if(x===null) return;
-    const y=fx(x), sc=Math.abs(fx(x+1e-6*(1+Math.abs(x))))+1; if(Number.isFinite(y)&&Math.abs(y)<=1e-8*sc) put({re:x,im:0,row:casRow(r),dec:false}); });
+  /* The algebra library is not asked here: for non-polynomial equations it only returns rough fractions (which
+     were discarded anyway), it is slow, and it tries to compile code with eval, which the apps' security policy blocks. */
   const old=V.x; let found=[]; try{ found=solve(()=>fx(V.x),()=>0); }finally{ V.x=old; }
   const nice=x=>{ const e=exactRow(x,'π sqrt'); if(e) return {row:e,dec:false};
     let r=ratApprox(x,12,1e-9); if(r&&r[1]>1) return {row:frow(fr(r[0],r[1])),dec:false}; if(r) return {row:decRow(r[0]),dec:true};

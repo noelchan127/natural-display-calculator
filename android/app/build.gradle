@@ -32,7 +32,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            // R8 removes unused library code (smaller APK); proguard-rules.pro keeps the page's haptics bridge.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig hasReleaseKey ? signingConfigs.release : signingConfigs.debug
         }
     }

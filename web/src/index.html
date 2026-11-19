@@ -903,7 +903,9 @@ function renderNode(n,cur,prev){
         const binary=v==='mod'||(prev&&!(prev.t==='c'&&(OPS.test(prev.v)||prev.v===','||prev.v.endsWith('('))));
         return el('span',binary||/[=<>≤≥≠]/.test(v)?'ch op':'ch',v);
       }
-      if(v.length>1&&v.endsWith('(')){ const e=el('span','ch fnm'); const nm=v.slice(0,-1); e.innerHTML=(FNDISP[nm]||nm)+'('; return e; }
+      if(v.length>1&&v.endsWith('(')){ const e=el('span','ch fnm'), nm=v.slice(0,-1);
+        /* only the fixed display names are markup; any other name is shown as plain text */
+        if(Object.prototype.hasOwnProperty.call(FNDISP,nm)) e.innerHTML=FNDISP[nm]+'('; else e.textContent=v; return e; }
       if(/^[a-z]$/.test(v)) return el('span','ch var',v);
       if(v.length>3&&/^[a-z ]+$/.test(v)) return el('span','ch word',v);
       return el('span','ch',v);
@@ -944,22 +946,24 @@ function renderNode(n,cur,prev){
   return el('span');
 }
 /* post-layout pass: put fraction bars on the math axis and lift exponents to the top of their base */
-function fix(e){
-  for(const ch of e.children) fix(ch);
-  if(e.classList.contains('frac')){
-    e.style.verticalAlign='calc(0.26em - '+e.children[1].getBoundingClientRect().height+'px)';
-  }else if(e.classList.contains('pow')){
-    let p=e.previousElementSibling;
-    while(p&&p.classList.contains('caret')) p=p.previousElementSibling;
-    if(!p) return;
-    e.style.verticalAlign='0px';
-    const pr=p.getBoundingClientRect(), r=e.getBoundingClientRect();
-    if(!pr.height){ e.style.verticalAlign=''; return; }
-    const fs=parseFloat(getComputedStyle(e.parentNode).fontSize);
-    e.style.verticalAlign=(r.bottom-(pr.top+Math.min(pr.height*0.45,fs*0.55)))+'px';
+/* Align fractions on the maths axis and raise exponents. Works up from the innermost level and, within a level,
+   measures every element before changing any, so the browser lays out a few times per level, not once per element. */
+function fix(roots){
+  roots=(Array.isArray(roots)?roots:[roots]).filter(r=>r.getClientRects().length);   /* hidden (display:none): nothing to measure; redone when shown */
+  const levels=[], walk=(e,d)=>{ for(const ch of e.children) walk(ch,d+1); const f=e.classList.contains('frac'), p=!f&&e.classList.contains('pow'); if(f||p) (levels[d]=levels[d]||{fr:[],pw:[]})[f?'fr':'pw'].push(e); };
+  roots.forEach(r=>walk(r,0));
+  for(let d=levels.length-1;d>=0;d--){
+    const L=levels[d]; if(!L) continue;
+    if(L.fr.length){ const hs=L.fr.map(e=>e.children[1].getBoundingClientRect().height); L.fr.forEach((e,i)=>{ e.style.verticalAlign='calc(0.26em - '+hs[i]+'px)'; }); }
+    if(L.pw.length){
+      const items=L.pw.map(e=>{ let p=e.previousElementSibling; while(p&&p.classList.contains('caret')) p=p.previousElementSibling; return {e,p}; }).filter(o=>o.p);
+      items.forEach(o=>{ o.e.style.verticalAlign='0px'; });
+      const m=items.map(o=>({pr:o.p.getBoundingClientRect(),r:o.e.getBoundingClientRect(),fs:parseFloat(getComputedStyle(o.e.parentNode).fontSize)}));
+      items.forEach((o,i)=>{ const {pr,r,fs}=m[i]; o.e.style.verticalAlign=pr.height?(r.bottom-(pr.top+Math.min(pr.height*0.45,fs*0.55)))+'px':''; });
+    }
   }
 }
-function staticMath(host,row){ host.textContent=''; const r=renderRow(row,null); host.appendChild(r); fix(r); }
+function staticMath(host,row,defer){ host.textContent=''; const r=renderRow(row,null); host.appendChild(r); if(defer) defer.push(r); else fix(r); }
 
 /* ---------- editor ---------- */
 const mkNode=t=>{ const n={t}; for(const k of KIDS[t]) n[k]=[]; return n; };
@@ -1093,10 +1097,17 @@ function showErr(e){
     : e&&e.kind==='dim' ? 'Type error: matrix sizes don’t fit this operation, or a matrix or complex number was used where a plain number is needed.'
     : 'Syntax error: something is missing or out of place. Check empty boxes, brackets and operators.');
 }
+const HMAX=200;   /* history kept in memory and on screen */
 function pushHist(show,load,v,src,example){
-  hist.push({show,load,v,src,useExact:!S.dec,view:null,example});
+  const it={show,load,v,src,useExact:!S.dec,view:null,example};
+  hist.push(it);
   if(!(v&&v.sol)&&typeof v!=='boolean') V.Ans=v;
-  renderHist();
+  if(hist.length>HMAX){ hist.splice(0,hist.length-HMAX); }
+  /* append just the new line instead of rebuilding the whole list */
+  const h=$('#hist');
+  if(histStale||!h.getClientRects().length){ histStale=true; updStatus(); return; }
+  { const d=histItem(it); h.appendChild(d); d._fill(); } while(h.children.length>hist.length) h.firstChild.remove();
+  h.scrollTop=h.scrollHeight; updStatus();
 }
 function resRow(it){
   const v=it.v;
@@ -1104,19 +1115,30 @@ function resRow(it){
   if(typeof it.view==='number'&&isN(v)) return baseRow(v,it.view);
   return valueRow(v,{exact:it.useExact&&S.fmt==='norm'&&it.view!=='sci',src:it.src,sci:it.view==='sci'});
 }
+let histStale=false;
+function histItem(it){
+  const d=el('div','hitem'), ex=el('div','hexpr'), rs=el('div','hres');
+  ex.title='Edit this expression again';
+  ex.onclick=()=>{ setActive(mainEd); mainEd.set(clone(it.load)); };
+  d.append(ex,rs);
+  d._fill=defer=>{ staticMath(ex,it.show,defer); if(it.example) ex.appendChild(el('span','tag','example')); staticMath(rs,resRow(it),defer); };
+  return d;
+}
+/* rebuild the history; while it is hidden (another tab on a phone) only mark it, and rebuild when it is shown */
 function renderHist(){
-  const h=$('#hist'); h.textContent='';
-  hist.forEach(it=>{
-    const d=el('div','hitem'), ex=el('div','hexpr'), rs=el('div','hres');
-    ex.title='Edit this expression again';
-    ex.onclick=()=>{ setActive(mainEd); mainEd.set(clone(it.load)); };
-    d.append(ex,rs); h.appendChild(d);
-    staticMath(ex,it.show);
-    if(it.example) ex.appendChild(el('span','tag','example'));
-    staticMath(rs,resRow(it));
-  });
+  const h=$('#hist');
+  if(!h.getClientRects().length){ histStale=true; updStatus(); return; }
+  histStale=false; h.textContent='';
+  const items=hist.map(it=>{ const d=histItem(it); h.appendChild(d); return d; });
+  const roots=[]; items.forEach(d=>d._fill(roots)); fix(roots);   /* one batched alignment pass for the whole list */
   h.scrollTop=h.scrollHeight;
   updStatus();
+}
+/* redraw only the last line (after S⇔D, ►DMS, ►BIN and the like) */
+function renderLastHist(){
+  const h=$('#hist'), it=hist[hist.length-1], last=h.lastElementChild;
+  if(histStale||!it||!last||h.children.length!==hist.length||!h.getClientRects().length) return renderHist();
+  const d=histItem(it); h.replaceChild(d,last); d._fill(); h.scrollTop=h.scrollHeight;
 }
 function short(v){
   if(isN(v)) return String(Number(v.toPrecision(6))).replace('-','−');
@@ -1168,7 +1190,7 @@ function toggleView(view){
   const it=hist[hist.length-1]; if(!it) return;
   if(typeof view==='number'&&view!==10&&!(isN(it.v)&&Number.isInteger(it.v)&&Math.abs(it.v)<2**53)){ msg('Base conversion needs a whole-number answer.'); return; }
   if(view==='dms'&&!isN(it.v)){ msg('Degrees, minutes and seconds need a plain number answer.'); return; }
-  it.view=(view===10||it.view===view)?null:view; renderHist();
+  it.view=(view===10||it.view===view)?null:view; renderLastHist();
 }
 function dmsKey(ed){
   if(ed===mainEd&&!ed.root.length&&hist.length) return toggleView('dms');
@@ -1228,7 +1250,7 @@ function act(a){
     case 'mplus': store('M',1); break;
     case 'mminus': store('M',-1); break;
     case 'xm': store('M'); break;
-    case 'sd': { const it=hist[hist.length-1]; if(it){ it.useExact=!it.useExact; it.view=null; renderHist(); } break; }
+    case 'sd': { const it=hist[hist.length-1]; if(it){ it.useExact=!it.useExact; it.view=null; renderLastHist(); } break; }
   }
   if(hyp&&k==='f:'){ hyp=false; updStatus(); }
   if(shift){ shift=false; updKeys(); }
@@ -1648,17 +1670,36 @@ function resize(){
   draw();
 }
 new ResizeObserver(resize).observe($('#plotwrap'));
+/* crossing the phone/desktop width can reveal the history or editors that were laid out while hidden */
+let wasWide=matchMedia('(min-width:900px)').matches;
+addEventListener('resize',()=>{ const w=matchMedia('(min-width:900px)').matches; if(histStale) renderHist(); if(w!==wasWide){ wasWide=w; mainEd.render(); fns.forEach(o=>o.ed.render()); } });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',drawSoon);
 new MutationObserver(drawSoon).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
 /* ---------- persistence (this browser only) ---------- */
 let saveT=0;
 function save(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem('natcalc-v1',JSON.stringify({S,view,fns:fns.map(o=>({row:o.row,on:o.on}))})); }catch(e){} },300); }
-function load(){ try{ const d=JSON.parse(localStorage.getItem('natcalc-v1')); if(!d||!Array.isArray(d.fns)) return false;
-  if(d.S) Object.assign(S,d.S); else { S.ang=d.deg===false?'rad':'deg'; S.dec=!!d.dec; }
-  if(!ANG.includes(S.ang)) S.ang='deg'; if(typeof S.haptic!=='boolean') S.haptic=true; if(!FMT.includes(S.fmt)) S.fmt='norm';
-  d.fns.slice(0,6).forEach(f=>fns.push({row:f.row||[],on:f.on!==false}));
-  if(d.view&&d.view.x0<d.view.x1&&d.view.y0<d.view.y1){ view=d.view; viewLoaded=true; } return true; }catch(e){ return false; } }
+/* Saved data is checked before use: a damaged or edited save must not stop the app from starting or inject markup. */
+function cleanRow(row,depth=0){
+  if(!Array.isArray(row)||depth>24) return [];
+  const out=[];
+  for(const n of row.slice(0,400)){
+    if(!n||typeof n!=='object') continue;
+    if(n.t==='c'){ if(typeof n.v==='string'&&n.v.length&&n.v.length<=24) out.push({t:'c',v:n.v}); continue; }
+    if(n.t==='mat'){ const r=n.r, c=n.c; if(Number.isInteger(r)&&Number.isInteger(c)&&r>=1&&c>=1&&r<=8&&c<=8&&Array.isArray(n.cells)&&n.cells.length===r*c) out.push({t:'mat',r,c,cells:n.cells.map(x=>cleanRow(x,depth+1))}); continue; }
+    if(Object.prototype.hasOwnProperty.call(KIDS,n.t)){ const m={t:n.t}; KIDS[n.t].forEach(k=>{ m[k]=cleanRow(n[k],depth+1); }); out.push(m); }
+  }
+  return out;
+}
+function load(){ try{ const d=JSON.parse(localStorage.getItem('natcalc-v1')); if(!d||typeof d!=='object'||!Array.isArray(d.fns)) return false;
+  const ds=d.S&&typeof d.S==='object'?d.S:null;
+  if(ds){ for(const k of Object.keys(S)) if(Object.prototype.hasOwnProperty.call(ds,k)&&typeof ds[k]===typeof S[k]) S[k]=ds[k]; }
+  else { S.ang=d.deg===false?'rad':'deg'; S.dec=!!d.dec; }
+  if(!ANG.includes(S.ang)) S.ang='deg'; if(!FMT.includes(S.fmt)) S.fmt='norm'; if(!(Number.isInteger(S.digits)&&S.digits>=0&&S.digits<=9)) S.digits=4;
+  d.fns.slice(0,6).forEach(f=>{ if(f&&typeof f==='object') fns.push({row:cleanRow(f.row),on:f.on!==false}); });
+  const w=d.view, ok=w&&['x0','x1','y0','y1'].every(k=>Number.isFinite(w[k]));
+  if(ok&&w.x0<w.x1&&w.y0<w.y1&&w.x1-w.x0>1e-12&&w.y1-w.y0>1e-12&&Math.abs(w.x0)<1e15&&Math.abs(w.x1)<1e15&&Math.abs(w.y0)<1e15&&Math.abs(w.y1)<1e15){ view={x0:w.x0,x1:w.x1,y0:w.y0,y1:w.y1}; viewLoaded=true; }
+  return true; }catch(e){ return false; } }
 
 /* ---------- start-up ---------- */
 if(!load()){
@@ -1679,9 +1720,9 @@ buildFnList();
 function setView(v){
   $('#app').dataset.view=v; hideKeys();
   $('#tabCalc').setAttribute('aria-selected',v==='calc'); $('#tabGraph').setAttribute('aria-selected',v==='graph'); $('#tabSolve').setAttribute('aria-selected',v==='solve');
-  if(v==='solve'){ if(window.solveShown) solveShown(); renderHist(); }
+  if(v==='solve'){ if(window.solveShown) solveShown(); if(histStale) renderHist(); }
   else if(v==='graph'){ if(active===mainEd&&fns[0]) setActive(fns[0].ed); fns.forEach(o=>o.ed.render()); resize(); }
-  else { setActive(mainEd); renderHist(); }
+  else { setActive(mainEd); if(histStale) renderHist(); }
 }
 $('#tabCalc').onclick=()=>setView('calc');
 $('#khide').onclick=hideKeys;

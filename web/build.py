@@ -4,6 +4,7 @@ Inlines the Solve script, the nerdamer algebra library and the fonts into
 src/index.html, so the result needs no network access. Run `npm ci` first.
 """
 import base64
+import hashlib
 import os
 import re
 import sys
@@ -43,6 +44,10 @@ def main():
             '<script src="solve.js"></script>')
     if page.count(tags) != 1:
         sys.exit('script tags for nerdamer and solve.js not found in src/index.html')
+    if not lib.startswith('var nerdamer='):
+        sys.exit('nerdamer bundle no longer starts with "var nerdamer=": check the lazy-load wrapper')
+    # Wrapped in a function so the browser only pre-parses it at start-up; solve.js runs it on first use.
+    lib = 'window.__loadNerdamer=function(){\n' + lib + '\n;return nerdamer;};'
     page = page.replace(tags, '<script>\n' + lib + '\n</script>\n<script>\n' + solve + '\n</script>')
 
     links = re.findall(r'<link[^>]*fonts\.g[^>]*>\n', page)
@@ -65,6 +70,22 @@ def main():
     head = page.split('<script', 1)[0]
     if re.search(r'(src|href)="https?://', head):
         sys.exit('an external URL is still referenced in the page head')
+
+    # Content Security Policy: only this page's own inline scripts and styles may run (matched by hash), and it may
+    # not load or send anything. The Windows (WebView2), Android and offline copies all use this file.
+    def sha(text):
+        return "'sha256-" + base64.b64encode(hashlib.sha256(text.encode('utf-8')).digest()).decode() + "'"
+    scripts = [sha(m.group(1)) for m in re.finditer(r'<script>(.*?)</script>', page, re.S)]
+    scripts += [sha(m.group(1)) for m in re.finditer(r'<script id="engine">(.*?)</script>', page, re.S)]
+    styles = [sha(m.group(1)) for m in re.finditer(r'<style>(.*?)</style>', page, re.S)]
+    if re.search(r'<script(?! id="engine")(?!>)', page):
+        sys.exit('a <script> tag with attributes would not be covered by the CSP hashes')
+    csp = ("default-src 'none'; script-src " + ' '.join(scripts) + "; style-src " + ' '.join(styles) +
+           "; font-src data:; img-src data:; connect-src ipc: http://ipc.localhost; base-uri 'none'; form-action 'none'")
+    meta = '<meta http-equiv="Content-Security-Policy" content="' + csp + '">\n'
+    if page.count('<meta charset="utf-8">\n') != 1:
+        sys.exit('<meta charset="utf-8"> not found once in the page head')
+    page = page.replace('<meta charset="utf-8">\n', '<meta charset="utf-8">\n' + meta, 1)
 
     os.makedirs(os.path.join(HERE, 'dist'), exist_ok=True)
     out = os.path.join(HERE, 'dist', 'index.html')

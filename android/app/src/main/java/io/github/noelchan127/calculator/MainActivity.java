@@ -58,13 +58,19 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return loader.shouldInterceptRequest(request.getUrl());
+                WebResourceResponse r = loader.shouldInterceptRequest(request.getUrl());
+                // Anything that is not one of the app's own files gets an empty answer, so the page can never reach out.
+                return r != null ? r : new WebResourceResponse("text/plain", "utf-8", 404, "Not found",
+                        java.util.Collections.emptyMap(), new java.io.ByteArrayInputStream(new byte[0]));
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (HOST.equals(uri.getHost())) return false;
+                String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(java.util.Locale.ROOT);
+                if ("https".equals(scheme) && HOST.equals(uri.getHost())) return false;
+                // Only ordinary web and mail links are handed to other apps; intent:, file:, content: and the rest are dropped.
+                if (!scheme.equals("https") && !scheme.equals("http") && !scheme.equals("mailto")) return true;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, uri));
                 } catch (ActivityNotFoundException ignored) {
@@ -79,6 +85,8 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
+        s.setGeolocationEnabled(false);
+        s.setSaveFormData(false);
         s.setTextZoom(100); // the keypad layout is sized for 100% text
         s.setSupportZoom(false);
 
