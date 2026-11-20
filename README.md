@@ -10,6 +10,8 @@ to the internet.
 
 **Downloads and updates:** [github.com/noelchan127/natural-display-calculator/releases](https://github.com/noelchan127/natural-display-calculator/releases/latest).
 The app doesn't check for updates itself, so look here for new versions; **MENU → About** in the app links here too.
+On Windows, expect a blue "Windows protected your PC" warning the first time you run it: see
+[the note below](#the-windows-protected-your-pc-warning).
 
 This is a one-person hobby project I made for my own use. I'll look at issues and suggestions when I can,
 but please forgive me if I'm slow to respond.
@@ -43,14 +45,19 @@ On a phone they share one screen, with Calculate, Graph and Solve tabs:
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/android-calculate.png" alt="Calculate tab with answers in textbook notation" width="260"></td>
-    <td><img src="docs/screenshots/android-graph.png" alt="Graph tab with two functions" width="260"></td>
-    <td><img src="docs/screenshots/android-derivative.png" alt="Derivative with product-rule steps" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-calculate.png" alt="Calculate tab with answers in textbook notation" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-graph.png" alt="Graph tab with two functions and their key points marked" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-derivative.png" alt="Derivative with product-rule steps" width="260"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/android-algebra.png" alt="Solving a quadratic step by step" width="260"></td>
-    <td><img src="docs/screenshots/android-geometry.png" alt="Triangle solver with a drawing" width="260"></td>
-    <td><img src="docs/screenshots/android-settings.png" alt="Settings menu" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-integral.png" alt="Indefinite integral of x·eˣ" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-algebra.png" alt="Solving a quadratic step by step" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-matrix.png" alt="Solving a 3×3 system with matrices" width="260"></td>
+  </tr>
+  <tr>
+    <td valign="top"><img src="docs/screenshots/android-geometry.png" alt="Triangle solver with a drawing and steps" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-shapes.png" alt="The list of geometry shapes" width="260"></td>
+    <td valign="top"><img src="docs/screenshots/android-settings.png" alt="Settings menu" width="260"></td>
   </tr>
 </table>
 
@@ -58,9 +65,26 @@ On a phone they share one screen, with Calculate, Graph and Solve tabs:
 
 Get the latest version from the [Releases page](../../releases/latest):
 
-- **Windows 10 or 11:** `Natural-Display-Calculator-<version>-Windows-setup.exe` installs for the current user (no admin needed), adds a Start Menu entry and appears in Settings → Apps → Installed apps. Running a newer setup upgrades in place and keeps your settings; `/S` installs silently. The `Windows-portable.exe` runs without installing. Both use the WebView2 runtime, which Windows normally already has; the installer adds it if missing. The apps are not code-signed, so Windows SmartScreen warns the first time: choose **More info → Run anyway**.
-- **Android 7.0 or newer:** `Natural-Display-Calculator-<version>-Android.apk`. Allow installs from your browser or file manager when prompted. To update, install the new APK over the old one.
+- **Windows 10 or 11:** `Natural-Display-Calculator-<version>-Windows-setup.exe` installs for the current user (no admin needed), adds a Start Menu entry and appears in Settings → Apps → Installed apps. Running a newer setup upgrades in place and keeps your settings; `/S` installs silently. The `Windows-portable.exe` runs without installing. Both use the WebView2 runtime, which Windows normally already has; the installer adds it if missing. See the note below about the warning Windows shows the first time.
+- **Android 7.0 or newer:** `Natural-Display-Calculator-<version>-Android.apk`. Allow installs from your browser or file manager when prompted; Android may also warn that the app isn't from Google Play, which is expected. To update, install the new APK over the old one.
 - **Any browser:** `Natural-Display-Calculator-<version>-offline.html` is the whole calculator in one file. Save it and open it; it works without a connection.
+
+### The "Windows protected your PC" warning
+
+<img src="docs/screenshots/windows-smartscreen.png" alt="Windows protected your PC: Microsoft Defender SmartScreen prevented an unrecognised app from starting. Publisher: Unknown publisher" width="400" align="right">
+
+The first time you run the installer or the portable app, Microsoft Defender SmartScreen may stop it with
+**Windows protected your PC** and **Publisher: Unknown publisher**. This doesn't mean a virus was found.
+SmartScreen warns about any program that isn't code-signed and that it hasn't yet seen downloaded many times.
+Code signing costs money every year, which this free hobby project doesn't pay for.
+
+To run it, click **More info**, check the file name, then click **Run anyway**. You only need to do this once
+for each file.
+
+Only do this for files downloaded from this repository's [Releases page](../../releases/latest). If you got
+the file anywhere else, delete it and download it from here instead.
+
+<br clear="right">
 
 ## Privacy
 
