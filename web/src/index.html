@@ -1359,8 +1359,8 @@ $('#clearHist').onclick=()=>{ hist.length=0; renderHist(); };
 const TABS=[['settings','Settings'],['funcs','Functions'],['const','Constants'],['convert','Convert'],['stat','Statistics'],['matrix','Matrix'],['base','Base-N'],['about','About']];
 const APP_VERSION='__APP_VERSION__';
 /* public: set to true once the GitHub repository is public, to show the links to it in the About tab */
-const APP={public:false,authorUrl:'https://github.com/noelchan127',repoUrl:'https://github.com/noelchan127/natural-display-calculator'};
-APP.releasesUrl=APP.repoUrl+'/releases/latest'; APP.licenseUrl=APP.repoUrl+'/blob/main/LICENSE';
+const APP={public:true,authorUrl:'https://github.com/noelchan127',repoUrl:'https://github.com/noelchan127/natural-display-calculator'};
+APP.releasesUrl=APP.repoUrl+'/releases/latest';
 /* where this copy is running: the Android app exposes its haptics bridge, the Windows app is served from tauri.localhost */
 const PLATFORM=(typeof window!=='undefined'&&window.AndroidHaptics)?'android':(typeof location!=='undefined'&&location.hostname==='tauri.localhost')?'windows':'web';
 /* Light/Dark/Match system. The CSS keys off data-theme on <html>; the apps are told too so the
@@ -1473,15 +1473,10 @@ function renderTools(){
     const showText=(id,title)=>{ const tp=document.getElementById(id); pre.textContent=tp?tp.content.textContent:title+' is included with the source code.'; pre.hidden=false; pre.scrollTop=0; pre.scrollIntoView({block:'nearest'}); };
     const t=el('div','abt-title','Natural Display Calculator'); B.appendChild(t);
     B.appendChild(el('div','abt-ver','Version '+(/^\d/.test(APP_VERSION)?APP_VERSION:'(development build)')));
-    if(APP.public){
-      B.appendChild(linkLine('Made by ','Noel Chan',APP.authorUrl));
-      B.appendChild(linkLine('Licence: ','GNU GPL v3.0 or later',APP.licenseUrl));
-    }else{
-      B.appendChild(el('p','abt-line','Made by Noel Chan'));
-      /* no public copy of the licence online yet, so the link opens the text built into the app */
-      const lp=el('p','abt-line'), la=el('a',null,'GNU GPL v3.0 or later'); la.href='#'; la.onclick=e=>{ e.preventDefault(); showText('lic-gpl','The licence'); };
-      lp.append('Licence: ',la); B.appendChild(lp);
-    }
+    B.appendChild(APP.public?linkLine('Made by ','Noel Chan',APP.authorUrl):el('p','abt-line','Made by Noel Chan'));
+    /* the licence link opens the text built into the app, so it works offline */
+    const lp=el('p','abt-line'), la=el('a',null,'GNU GPL v3.0 or later'); la.href='#'; la.onclick=e=>{ e.preventDefault(); showText('lic-gpl','The licence'); };
+    lp.append('Licence: ',la); B.appendChild(lp);
     B.appendChild(el('p','abt-grey','Copyright © 2026 Noel Chan. Free, open-source software provided without any warranty. You may share and modify it under the licence terms.'));
     if(APP.public){
       B.appendChild(linkLine('Updates: ','download the latest version',APP.releasesUrl,true));

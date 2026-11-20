@@ -70,10 +70,13 @@ def main():
     ])
     page = page.replace('<style>\n', '<style>\n' + css, 1)
 
-    # Licence texts for the About tab, so every copy carries them (GPL-3.0 section 4 and 6, MIT, OFL, Apache-2.0).
+    # Licence texts for the About tab, so every copy carries them (GPL-3.0 section 4 and 6, MIT, OFL, Apache-2.0, BSD, Zlib, MPL-2.0, Unicode-3.0).
     root = os.path.dirname(HERE)
     version = read(root, 'VERSION').strip()
-    texts = {'lic-gpl': read(root, 'LICENSE'), 'lic-3p': read(root, 'THIRD-PARTY-NOTICES.md'),
+    # The MPL-2.0 and Unicode-3.0 texts (Rust crates in the Windows app) go at the end of the notices.
+    extra = ''.join(f'\n\n---------- licenses/{n} ----------\n\n' + read(root, 'licenses', n)
+                    for n in ('MPL-2.0.txt', 'Unicode-3.0.txt'))
+    texts = {'lic-gpl': read(root, 'LICENSE'), 'lic-3p': read(root, 'THIRD-PARTY-NOTICES.md') + extra,
              'lic-apache': read(root, 'licenses', 'Apache-2.0.txt'), 'lic-mit': read(root, 'licenses', 'MIT.txt')}
     tpl = ''.join(f'<template id="{k}">{html.escape(v, quote=False)}</template>\n' for k, v in texts.items())
     # At the very end of the body: they are only read when the About tab opens, so they must not hold up

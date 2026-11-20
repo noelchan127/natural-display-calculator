@@ -1,0 +1,19 @@
+name: Bug report
+description: Something works wrongly or gives a wrong answer
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you typed or tapped, what you expected, and what you got instead. A screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: system
+    attributes:
+      label: System info
+      description: In the app, MENU → About → Copy system info, then paste it here.
+      render: text
+    validations:
+      required: true

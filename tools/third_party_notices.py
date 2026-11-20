@@ -9,6 +9,7 @@ Cargo available (for the Rust crates compiled into the Windows app):
 """
 import json
 import os
+import re
 import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -26,9 +27,98 @@ def crates():
         check=True, capture_output=True, text=True).stdout
     m = json.loads(out)
     used = {n['id'] for n in m['resolve']['nodes']}
-    rows = sorted((p['name'], p['version'], p['license'] or 'see crate', p.get('repository') or '')
-                  for p in m['packages'] if p['id'] in used and p['name'] != 'natural-display-calculator')
-    return rows
+    return sorted((p for p in m['packages'] if p['id'] in used and p['name'] != 'natural-display-calculator'),
+                  key=lambda p: (p['name'], p['version']))
+
+
+# Licences whose standard text is in licenses/ and needs no per-crate copy beyond the copyright lines.
+SHARED = {'MIT': 'MIT.txt', 'Apache-2.0': 'Apache-2.0.txt', 'MPL-2.0': 'MPL-2.0.txt', 'Unicode-3.0': 'Unicode-3.0.txt'}
+TEMPLATE = re.compile(r'\[yyyy\]|<year>|\{yyyy\}|\[name of|<copyright holders>|copyright owner|'
+                      r'copyright notice|copyright holders? (be|and)|copyright holder\b|copyright license|'
+                      r'copyright law|copyright statement|by copyright|copyright and|copyright,', re.I)
+
+
+def chosen(expr):
+    """The licence(s) this project uses the crate under: MIT where offered, else Apache-2.0, else as stated."""
+    expr = (expr or '').replace('/', ' OR ')
+    terms = []
+    for conj in re.split(r'\s+AND\s+', expr):
+        opts = [o.strip(' ()') for o in re.split(r'\s+OR\s+', conj) if o.strip(' ()')]
+        for pick in ('MIT', 'Apache-2.0'):
+            if pick in opts:
+                terms.append(pick)
+                break
+        else:
+            terms.append(opts[0] if opts else 'see crate')
+    return list(dict.fromkeys(terms))
+
+
+def licence_files(p):
+    d = os.path.dirname(p['manifest_path'])
+    return sorted(os.path.join(d, f) for f in os.listdir(d)
+                  if re.match(r'(?i)^(licen[cs]e|copying|copyright|notice)', f) and os.path.isfile(os.path.join(d, f)))
+
+
+def copyright_lines(p):
+    lines = []
+    for f in licence_files(p):
+        if os.path.basename(f).upper().startswith('NOTICE'):
+            continue
+        with open(f, encoding='utf-8', errors='replace') as fh:
+            for line in fh:
+                t = line.strip()
+                if (re.match(r'(?i)^copyright\b', t) or (re.match(r'(?i)^(\(c\)|©)', t) and re.search(r'\d{4}', t))) \
+                        and not TEMPLATE.search(t) and len(t) < 200:
+                    lines.append(t)
+    lines = list(dict.fromkeys(lines))
+    if not lines:
+        who = ', '.join(a.split(' <')[0] for a in p.get('authors') or []) or f'the {p["name"]} developers'
+        lines = [f'Copyright {who}']
+    return lines
+
+
+def crate_section(pkgs):
+    out = ['| Crate | Version | Licence | Source |', '|---|---|---|---|']
+    for p in pkgs:
+        src = p.get('repository') or f'https://crates.io/crates/{p["name"]}'
+        out.append(f'| {p["name"]} | {p["version"]} | {p["license"] or "see crate"} | {src} |')
+    out += ['', f'{len(pkgs)} crates.', '', '### Copyright notices', '',
+            'Each crate is used under the licence named after its notice (where several are offered, MIT, '
+            'otherwise Apache-2.0). Licence texts not reproduced below are in [licenses/](licenses/).', '']
+    verbatim, notices, by_repo, missing = {}, [], {}, []
+    for p in pkgs:
+        terms = chosen(p['license'])
+        out.append(f'**{p["name"]} {p["version"]}** ({" AND ".join(terms)})')
+        out.append('')
+        out += [f'    {l}' for l in copyright_lines(p)]
+        out.append('')
+        for f in licence_files(p):
+            base = os.path.basename(f)
+            with open(f, encoding='utf-8', errors='replace') as fh:
+                text = fh.read().strip('\n')
+            if base.upper().startswith('NOTICE'):
+                notices.append((p, text))
+            elif any(t not in SHARED for t in terms) and not re.search(r'(?i)mit|apache', base):
+                verbatim.setdefault(text, []).append(f'{p["name"]} {p["version"]}')
+                by_repo[p.get('repository')] = text
+        if any(t not in SHARED for t in terms) and not any(
+                f'{p["name"]} {p["version"]}' in v for v in verbatim.values()):
+            missing.append(p)
+    for p in missing:  # published without a licence file: same text as a sibling crate from the same repository
+        text = by_repo.get(p.get('repository'))
+        if text is None:
+            raise SystemExit(f'{p["name"]} {p["version"]}: no licence text for {p["license"]}; add it by hand')
+        verbatim[text].append(f'{p["name"]} {p["version"]} (published without its own copy; same repository)')
+    if notices:
+        out += ['### NOTICE files', '']
+        for p, text in notices:
+            out += [f'**{p["name"]} {p["version"]}**', '', '```', text, '```', '']
+    if verbatim:
+        out += ['### Other licence texts', '',
+                'These crates use licences that carry their own copyright line, reproduced as published:', '']
+        for text, names in verbatim.items():
+            out += [f'Applies to: {", ".join(names)}', '', '```', text, '```', '']
+    return out
 
 
 def main():
@@ -76,18 +166,16 @@ def main():
         '',
         '## Windows app',
         '',
-        'Built with Tauri and the Rust crates below, compiled into the executable. Each is used under the licence '
-        'shown (where several are offered, under one of them). The MIT and Apache-2.0 texts are in '
-        '[licenses/](licenses/); each crate\'s own copyright notice is in its repository.',
+        'Built with Tauri and the Rust crates below, compiled into the executable. The MIT, Apache-2.0, '
+        'MPL-2.0 and Unicode-3.0 texts are in [licenses/](licenses/); every crate\'s copyright notice follows the '
+        'table. The source code of each crate, including those under the Mozilla Public License 2.0, is available '
+        'at the address in the Source column.',
         '',
         'The installer also contains Microsoft\'s Edge WebView2 Runtime bootstrapper, which Microsoft distributes '
         'under its own terms; it is a separate program and is not covered by this project\'s licence.',
         '',
-        '| Crate | Version | Licence |',
-        '|---|---|---|',
     ]
-    parts += [f'| {n} | {v} | {lic} |' for n, v, lic, _ in rows]
-    parts += ['', f'{len(rows)} crates.', '']
+    parts += crate_section(rows)
     with open(os.path.join(ROOT, 'THIRD-PARTY-NOTICES.md'), 'w', encoding='utf-8') as f:
         f.write('\n'.join(parts))
     print(f'wrote THIRD-PARTY-NOTICES.md ({len(rows)} crates)')

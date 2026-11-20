@@ -34,7 +34,8 @@
     "license": "GPL-3.0-or-later",
     "resources": {
       "../../LICENSE": "LICENSE.txt",
-      "../../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md"
+      "../../THIRD-PARTY-NOTICES.md": "THIRD-PARTY-NOTICES.md",
+      "../../licenses/": "licenses/"
     },
     "category": "Education",
     "shortDescription": "Scientific and graphing calculator with natural display",
