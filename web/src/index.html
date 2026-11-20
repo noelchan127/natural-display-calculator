@@ -1815,10 +1815,12 @@ if(!load()){
 applyTheme();
 buildFnList();
 {
-  const keep={...S}; Object.assign(S,{ang:'deg',cplx:false,polar:false});
+  /* examples are worked out in the current angle unit, so the trig one uses a matching angle */
+  const keep={...S}; Object.assign(S,{cplx:false,polar:false});
+  const ang={deg:[C('6'),C('0')], rad:[{t:'frac',a:[C('π')],b:[C('3')]}], grad:[C('5'),C('0')]}[S.ang]||[C('6'),C('0')];
   [
     [{t:'frac',a:[C('1')],b:[C('3')]},C('+'),{t:'frac',a:[C('1')],b:[C('6')]}],
-    [{t:'sqrt',a:[C('1'),C('8')]},C('×'),C('sin('),C('6'),C('0'),C(')')],
+    [{t:'sqrt',a:[C('1'),C('8')]},C('×'),C('sin('),...ang,C(')')],
     [{t:'int',lo:[C('0')],hi:[C('2')],a:[C('x'),{t:'pow',a:[C('2')]}]}]
   ].forEach(row=>{ try{ pushHist(row,row,evaluate(row),ser(row),true); }catch(e){} });
   Object.assign(S,keep); renderHist();

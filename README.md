@@ -1,6 +1,7 @@
 # Natural Display Calculator
 
 ## About
+
 A scientific and graphing calculator that shows maths the way it's written in a textbook: real fractions,
 roots, powers and matrices, with exact answers such as ⅔, √2 or π/4 and a decimal whenever you want one.
 It graphs functions, and its Solve tab works out derivatives, integrals, equations, matrices and geometry
@@ -10,7 +11,47 @@ to the internet.
 This is a one-person hobby project I made for my own use. I'll look at issues and suggestions when I can,
 but please forgive me if I'm slow to respond.
 
-In the app, **MENU → About** shows the version and licence.
+![The Windows app: calculator on the left, two functions graphed on the right](docs/screenshots/windows-graph.png)
+
+## What it does
+
+- **Calculate:** type the way it's printed: fractions, roots, powers, logs, integrals, derivatives, sums,
+  products and limits in proper notation. Answers stay exact (½, 3√6⁄2, π⁄4) or switch to decimals with
+  S⇔D. Also complex numbers, base-N (binary, octal, hex), statistics, matrices, physical constants, unit
+  conversions and memories. On a computer you can type with the keyboard too.
+- **Graph:** up to six functions at once. Roots, turning points, intercepts and intersections are marked; tap or hover
+  to read a point, drag to pan, pinch or scroll to zoom, or set the window exactly.
+- **Solve, with worked steps:**
+  - *Derivative:* any order, step by step through the power, product, quotient and chain rules.
+  - *Integral:* indefinite or between limits, checked by differentiating the answer.
+  - *Algebra:* solve equations and systems, simplify, expand and factor.
+  - *Matrix:* determinant, inverse, transpose, row reduction, rank, eigenvalues, A + B, A − B, A·B and
+    A·x = B, all in exact fractions.
+  - *Geometry:* triangle solver and Pythagoras, isosceles triangle, circle, sector and arc, rectangle,
+    regular polygon, sphere, cylinder, cone and cuboid, with a drawing.
+- **Settings:** light, dark or match the system; degrees, radians or gradians; exact or decimal answers;
+  normal, fixed, scientific or engineering format.
+
+On a wide screen the calculator and the Graph or Solve tab sit side by side:
+
+![Solving a 3×3 system on Windows, with each row operation shown](docs/screenshots/windows-matrix.png)
+
+On a phone they share one screen, with Calculate, Graph and Solve tabs:
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/android-calculate.png" alt="Calculate tab with answers in textbook notation" width="260"></td>
+    <td><img src="docs/screenshots/android-graph.png" alt="Graph tab with two functions" width="260"></td>
+    <td><img src="docs/screenshots/android-derivative.png" alt="Derivative with product-rule steps" width="260"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/android-algebra.png" alt="Solving a quadratic step by step" width="260"></td>
+    <td><img src="docs/screenshots/android-geometry.png" alt="Triangle solver with a drawing" width="260"></td>
+    <td><img src="docs/screenshots/android-settings.png" alt="Settings menu" width="260"></td>
+  </tr>
+</table>
+
+**MENU → About** in the app shows the version, the licence and links to this page.
 
 ## Download
 
@@ -42,6 +83,7 @@ Every push to `main` builds all three apps; the latest set is also kept on the [
 | `windows/` | Windows desktop app. [Tauri](https://tauri.app) wrapper that renders the page with Microsoft Edge WebView2. |
 | `android/` | Android app. A native `WebView` that serves the page from the app's own assets. No internet permission. |
 | `art/` | App icon sources. |
+| `docs/screenshots/` | Pictures used in this README. |
 
 ### Android signing
 
