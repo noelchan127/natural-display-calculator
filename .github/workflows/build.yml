@@ -190,7 +190,7 @@ jobs:
           | `…-Android.apk` | Android 7.0 or newer |
           | `…-offline.html` | Any browser, no install |
 
-          Free software under the GNU GPL v3 (see `LICENSE`); bundled components are listed in `THIRD-PARTY-NOTICES.md`.
+          Free software under the GNU GPL v3 or later (see `LICENSE`); bundled components are listed in `THIRD-PARTY-NOTICES.md`.
 
           The Windows files are not code-signed, so SmartScreen warns the first time: choose **More info**, then **Run anyway**.
           On Android, allow installs from your browser or file manager when prompted. The app updates in place over earlier versions.
