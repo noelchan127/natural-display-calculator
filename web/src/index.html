@@ -296,7 +296,7 @@ h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
 .abt-title{font-size:20px;font-weight:600;margin:2px 0 0}
 .abt-ver{color:var(--muted);margin:2px 0 12px}
 .abt-line{margin:4px 0}
-.abt-line a{color:var(--accent,#2350d6);font-weight:500}
+.abt-line a{color:var(--accent,#2350d6);font-weight:500;overflow-wrap:anywhere}
 .abt-gap{margin-top:12px}
 .abt-grey{color:var(--muted);font-size:13px;margin:4px 0}
 .abt-copy{margin-top:12px;width:auto;align-self:flex-start;display:inline-block}
@@ -951,9 +951,12 @@ function renderNode(n,cur,prev){
     case 'rec': { const s=el('span','rec st'); s.append(sub(n.a)); return s; }
     case 'logb': { const s=el('span','st'); s.append(txt('log','ch fnm'),sub(n.b,'sub'),txt('('),sub(n.a),txt(')')); return s; }
     case 'int': {
-      const s=el('span','big st'), lims=el('span','col lims');
-      lims.append(sub(n.hi),sub(n.lo));
-      const dx=el('span','ch'); dx.innerHTML='&thinsp;d<i>x</i>';
+      /* dv: the variable of integration in a Solve result (a single letter); typed integrals are in x */
+      const s=el('span','big st'), dx=el('span','ch'), dv=typeof n.dv==='string'&&/^[a-zA-Z]$/.test(n.dv)?n.dv:'x';
+      dx.append('\u2009d',el('i',null,dv));
+      /* an indefinite integral in a Solve result (marked indef) has no limits to show: leave out the empty boxes */
+      if(n.indef&&!n.lo.length&&!n.hi.length){ s.append(txt('∫','sym'),sub(n.a),dx); return s; }
+      const lims=el('span','col lims'); lims.append(sub(n.hi),sub(n.lo));
       s.append(txt('∫','sym'),lims,sub(n.a),dx); return s;
     }
     case 'sum': return big('Σ',n,'<i>x</i>=');
@@ -1479,8 +1482,9 @@ function renderTools(){
     lp.append('Licence: ',la); B.appendChild(lp);
     B.appendChild(el('p','abt-grey','Copyright © 2026 Noel Chan. Free, open-source software provided without any warranty. You may share and modify it under the licence terms.'));
     if(APP.public){
-      B.appendChild(linkLine('Updates: ','download the latest version',APP.releasesUrl,true));
-      B.appendChild(linkLine('Source code and bug reports: ','GitHub',APP.repoUrl));
+      /* the address is shown in full so it can be typed on another device */
+      B.appendChild(linkLine('Updates, source code and bug reports: ',APP.repoUrl.replace('https://',''),APP.repoUrl,true));
+      B.appendChild(linkLine('Latest version: ','download page',APP.releasesUrl));
       B.appendChild(el('p','abt-grey','The app never connects to the internet. Links open in your browser, and updates are installed by '+(PLATFORM==='android'?'installing the new APK':PLATFORM==='windows'?'running the new installer':'downloading the new offline file')+'.'));
     }else{
       B.appendChild(el('p','abt-grey abt-gap','The app never connects to the internet. To update, '+(PLATFORM==='android'?'install the new APK over this one':PLATFORM==='windows'?'run the new installer':'replace this file with the new one')+'; your settings and graphs are kept.'));

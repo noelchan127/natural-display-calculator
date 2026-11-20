@@ -466,14 +466,15 @@ const runInteg=guard('integ',()=>{
   const g=x=>evalAst(ast,{[v]:x});
   let F=null; try{ const r=NJ('integrate('+expr+','+v+')').toString(); if(!/integrate|defint/.test(r)) F=r; }catch(e){}
   const blocks=[], steps=[]; let note='';
-  const intHead=(lo,hi)=>[{t:'int',lo:lo||[],hi:hi||[],a:input}];
+  /* a sum is bracketed, so ∫(3x + sin(x)) dx isn't read as 3x + ∫sin(x) dx */
+  const intHead=(lo,hi)=>[{t:'int',lo:lo||[],hi:hi||[],a:ast.k==='add'?paren(input):input,indef:!lo&&!hi,dv:v}];
   if(F){
     const FA=parseCAS(F), out=P(FA);
     const terms=ast.k==='add'?ast.a:[ast];
     if(terms.length>1) steps.push({label:'Sum rule: integrate each term separately',row:input});
     terms.forEach(t=>{
       const {neg,cs,core}=splitConst(t,v); let r; try{ r=NJ('integrate('+astStr(t)+','+v+')').toString(); }catch(e){ return; } if(/integrate/.test(r)) return;
-      steps.push({label:(cs.length||neg?'Constant multiple rule, then ':'')+intRule(core,v),row:eqRow([{t:'int',lo:[],hi:[],a:P(t)}],casRow(r))});
+      steps.push({label:(cs.length||neg?'Constant multiple rule, then ':'')+intRule(core,v),row:eqRow([{t:'int',lo:[],hi:[],a:P(t),indef:true,dv:v}],casRow(r))});
     });
     steps.push({label:'Combine and add the constant of integration',row:[...out,C('+'),C('C')]});
     const ok=[0.41,1.27,2.3].every(x=>{ const h=1e-5, d=(evalAst(FA,{[v]:x+h})-evalAst(FA,{[v]:x-h}))/(2*h), y=g(x); return !Number.isFinite(d)||!Number.isFinite(y)||Math.abs(d-y)<1e-4*(1+Math.abs(y)); });

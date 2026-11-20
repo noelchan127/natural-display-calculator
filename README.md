@@ -8,6 +8,9 @@ It graphs functions, and its Solve tab works out derivatives, integrals, equatio
 with worked steps. It runs on Windows, on Android and as a single offline web page, and it never connects
 to the internet.
 
+**Downloads and updates:** [github.com/noelchan127/natural-display-calculator/releases](https://github.com/noelchan127/natural-display-calculator/releases/latest).
+The app doesn't check for updates itself, so look here for new versions; **MENU → About** in the app links here too.
+
 This is a one-person hobby project I made for my own use. I'll look at issues and suggestions when I can,
 but please forgive me if I'm slow to respond.
 
@@ -50,8 +53,6 @@ On a phone they share one screen, with Calculate, Graph and Solve tabs:
     <td><img src="docs/screenshots/android-settings.png" alt="Settings menu" width="260"></td>
   </tr>
 </table>
-
-**MENU → About** in the app shows the version, the licence and links to this page.
 
 ## Download
 
