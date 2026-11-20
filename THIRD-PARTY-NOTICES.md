@@ -153,7 +153,7 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | brotli-decompressor | 6.3.2 | BSD-3-Clause/MIT | https://github.com/dropbox/rust-brotli-decompressor |
 | bs58 | 0.5.1 | MIT/Apache-2.0 | https://github.com/Nullus157/bs58-rs |
 | byteorder | 1.5.0 | Unlicense OR MIT | https://github.com/BurntSushi/byteorder |
-| bytes | 1.12.1 | MIT | https://github.com/tokio-rs/bytes |
+| bytes | 1.12.2 | MIT | https://github.com/tokio-rs/bytes |
 | camino | 1.2.6 | MIT OR Apache-2.0 | https://github.com/camino-rs/camino |
 | cargo-platform | 0.1.9 | MIT OR Apache-2.0 | https://github.com/rust-lang/cargo |
 | cargo_metadata | 0.19.2 | MIT | https://github.com/oli-obk/cargo_metadata |
@@ -224,9 +224,13 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | infer | 0.22.0 | MIT | https://github.com/bojand/infer |
 | itoa | 1.0.19 | MIT OR Apache-2.0 | https://github.com/dtolnay/itoa |
 | jiff | 0.2.46 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff | 1.0.1 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
 | jiff-core | 0.1.8 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-core | 1.0.1 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
 | jiff-tzdb | 0.1.10 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-tzdb | 1.0.0 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
 | jiff-tzdb-platform | 0.1.3 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
+| jiff-tzdb-platform | 1.0.0 | Unlicense OR MIT | https://github.com/BurntSushi/jiff |
 | json-patch | 4.2.0 | MIT/Apache-2.0 | https://github.com/idubrov/json-patch |
 | jsonptr | 0.7.1 | MIT OR Apache-2.0 | https://github.com/chanced/jsonptr |
 | keyboard-types | 0.8.3 | MIT OR Apache-2.0 | https://github.com/rust-windowing/keyboard-types |
@@ -254,7 +258,7 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | phf_generator | 0.13.1 | MIT | https://github.com/rust-phf/rust-phf |
 | phf_macros | 0.13.1 | MIT | https://github.com/rust-phf/rust-phf |
 | phf_shared | 0.13.1 | MIT | https://github.com/rust-phf/rust-phf |
-| pin-project-lite | 0.2.17 | Apache-2.0 OR MIT | https://github.com/taiki-e/pin-project-lite |
+| pin-project-lite | 0.2.18 | Apache-2.0 OR MIT | https://github.com/taiki-e/pin-project-lite |
 | plist | 1.10.4 | MIT | https://github.com/ebarnard/rust-plist/ |
 | png | 0.18.1 | MIT OR Apache-2.0 | https://github.com/image-rs/image-png |
 | potential_utf | 0.1.6 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
@@ -266,9 +270,9 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | raw-window-handle | 0.6.2 | MIT OR Apache-2.0 OR Zlib | https://github.com/rust-windowing/raw-window-handle |
 | ref-cast | 1.0.27 | MIT OR Apache-2.0 | https://github.com/dtolnay/ref-cast |
 | ref-cast-impl | 1.0.27 | MIT OR Apache-2.0 | https://github.com/dtolnay/ref-cast |
-| regex | 1.13.1 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
-| regex-automata | 0.4.18 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
-| regex-syntax | 0.8.11 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
+| regex | 1.13.2 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
+| regex-automata | 0.4.19 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
+| regex-syntax | 0.8.12 | MIT OR Apache-2.0 | https://github.com/rust-lang/regex |
 | rustc-hash | 2.1.3 | Apache-2.0 OR MIT | https://github.com/rust-lang/rustc-hash |
 | rustc_version | 0.4.1 | MIT OR Apache-2.0 | https://github.com/djc/rustc-version-rs |
 | same-file | 1.0.6 | Unlicense/MIT | https://github.com/BurntSushi/same-file |
@@ -287,8 +291,8 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | serde_json | 1.0.154 | MIT OR Apache-2.0 | https://github.com/serde-rs/json |
 | serde_repr | 0.1.21 | MIT OR Apache-2.0 | https://github.com/dtolnay/serde-repr |
 | serde_spanned | 1.1.3 | MIT OR Apache-2.0 | https://github.com/toml-rs/toml |
-| serde_with | 3.24.0 | MIT OR Apache-2.0 | https://github.com/jonasbb/serde_with/ |
-| serde_with_macros | 3.24.0 | MIT OR Apache-2.0 | https://github.com/jonasbb/serde_with/ |
+| serde_with | 3.25.0 | MIT OR Apache-2.0 | https://github.com/jonasbb/serde_with/ |
+| serde_with_macros | 3.25.0 | MIT OR Apache-2.0 | https://github.com/jonasbb/serde_with/ |
 | serialize-to-javascript | 0.1.2 | MIT OR Apache-2.0 | https://github.com/chippers/serialize-to-javascript |
 | serialize-to-javascript-impl | 0.1.2 | MIT OR Apache-2.0 | https://github.com/chippers/serialize-to-javascript |
 | servo_arc | 0.4.3 | MIT OR Apache-2.0 | https://github.com/servo/stylo |
@@ -296,7 +300,7 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | shlex | 2.0.1 | MIT OR Apache-2.0 | https://github.com/comex/rust-shlex |
 | simd-adler32 | 0.3.10 | MIT | https://github.com/mcountryman/simd-adler32 |
 | siphasher | 1.0.4 | MIT OR Apache-2.0 | https://github.com/jedisct1/rust-siphash |
-| smallvec | 1.16.5 | MIT OR Apache-2.0 | https://github.com/servo/rust-smallvec |
+| smallvec | 1.16.6 | MIT OR Apache-2.0 | https://github.com/smallvec/smallvec |
 | socket2 | 0.6.5 | MIT OR Apache-2.0 | https://github.com/rust-lang/socket2 |
 | softbuffer | 0.4.8 | MIT OR Apache-2.0 | https://github.com/rust-windowing/softbuffer |
 | stable_deref_trait | 1.2.1 | MIT OR Apache-2.0 | https://github.com/storyyeller/stable_deref_trait |
@@ -307,14 +311,14 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | syn | 2.0.119 | MIT OR Apache-2.0 | https://github.com/dtolnay/syn |
 | syn | 3.0.10 | MIT OR Apache-2.0 | https://github.com/dtolnay/syn |
 | synstructure | 0.14.0 | MIT | https://github.com/mystor/synstructure |
-| tao | 0.37.2 | Apache-2.0 | https://github.com/tauri-apps/tao |
-| tauri | 2.12.6 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-build | 2.7.5 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-codegen | 2.7.5 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-macros | 2.7.5 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-runtime | 2.12.3 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-runtime-wry | 2.12.4 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
-| tauri-utils | 2.10.3 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tao | 0.37.3 | Apache-2.0 | https://github.com/tauri-apps/tao |
+| tauri | 2.12.7 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-build | 2.7.6 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-codegen | 2.7.6 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-macros | 2.7.6 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-runtime | 2.12.4 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-runtime-wry | 2.12.5 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
+| tauri-utils | 2.10.4 | Apache-2.0 OR MIT | https://github.com/tauri-apps/tauri |
 | tauri-winres | 0.3.7 | MIT | https://github.com/tauri-apps/winres |
 | tendril | 0.5.1 | MIT OR Apache-2.0 | https://github.com/servo/html5ever |
 | thiserror | 2.0.21 | MIT OR Apache-2.0 | https://github.com/dtolnay/thiserror |
@@ -368,7 +372,7 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | winnow | 1.0.5 | MIT | https://github.com/winnow-rs/winnow |
 | winreg | 0.56.0 | MIT | https://github.com/gentoo90/winreg-rs |
 | writeable | 0.6.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
-| wry | 0.57.2 | Apache-2.0 OR MIT | https://github.com/tauri-apps/wry |
+| wry | 0.57.3 | Apache-2.0 OR MIT | https://github.com/tauri-apps/wry |
 | yoke | 0.8.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | yoke-derive | 0.8.4 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
 | zerofrom | 0.1.8 | Unicode-3.0 | https://github.com/unicode-org/icu4x |
@@ -379,7 +383,7 @@ The installer also contains Microsoft's Edge WebView2 Runtime bootstrapper, whic
 | zlib-rs | 0.6.8 | Zlib | https://github.com/trifectatechfoundation/zlib-rs |
 | zmij | 1.0.23 | MIT | https://github.com/dtolnay/zmij |
 
-240 crates.
+244 crates.
 
 ### Copyright notices
 
@@ -446,7 +450,7 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright (c) 2015 Andrew Gallant
 
-**bytes 1.12.1** (MIT)
+**bytes 1.12.2** (MIT)
 
     Copyright (c) 2018 Carl Lerche
 
@@ -748,7 +752,15 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright (c) 2015 Andrew Gallant
 
+**jiff 1.0.1** (MIT)
+
+    Copyright (c) 2015 Andrew Gallant
+
 **jiff-core 0.1.8** (MIT)
+
+    Copyright (c) 2015 Andrew Gallant
+
+**jiff-core 1.0.1** (MIT)
 
     Copyright (c) 2015 Andrew Gallant
 
@@ -756,7 +768,15 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright (c) 2015 Andrew Gallant
 
+**jiff-tzdb 1.0.0** (MIT)
+
+    Copyright (c) 2015 Andrew Gallant
+
 **jiff-tzdb-platform 0.1.3** (MIT)
+
+    Copyright (c) 2015 Andrew Gallant
+
+**jiff-tzdb-platform 1.0.0** (MIT)
 
     Copyright (c) 2015 Andrew Gallant
 
@@ -877,7 +897,7 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright (c) 2014-2022 Steven Fackler, Yuki Okushi
 
-**pin-project-lite 0.2.17** (MIT)
+**pin-project-lite 0.2.18** (MIT)
 
     Copyright the pin-project-lite developers
 
@@ -927,15 +947,15 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright David Tolnay
 
-**regex 1.13.1** (MIT)
+**regex 1.13.2** (MIT)
 
     Copyright (c) 2014 The Rust Project Developers
 
-**regex-automata 0.4.18** (MIT)
+**regex-automata 0.4.19** (MIT)
 
     Copyright (c) 2014 The Rust Project Developers
 
-**regex-syntax 0.8.11** (MIT)
+**regex-syntax 0.8.12** (MIT)
 
     Copyright (c) 2014 The Rust Project Developers
 
@@ -1012,11 +1032,11 @@ Each crate is used under the licence named after its notice (where several are o
     Copyright Individual contributors
     Copyright (c) Individual contributors
 
-**serde_with 3.24.0** (MIT)
+**serde_with 3.25.0** (MIT)
 
     Copyright (c) 2015
 
-**serde_with_macros 3.24.0** (MIT)
+**serde_with_macros 3.25.0** (MIT)
 
     Copyright (c) 2015
 
@@ -1053,7 +1073,7 @@ Each crate is used under the licence named after its notice (where several are o
     Copyright 2012-2016 The Rust Project Developers.
     Copyright 2016-2026 Frank Denis.
 
-**smallvec 1.16.5** (MIT)
+**smallvec 1.16.6** (MIT)
 
     Copyright (c) 2018 The Servo Project Developers
 
@@ -1099,35 +1119,35 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright 2016 Nika Layzell
 
-**tao 0.37.2** (Apache-2.0)
+**tao 0.37.3** (Apache-2.0)
 
     Copyright Tauri Programme within The Commons Conservancy, The winit contributors
 
-**tauri 2.12.6** (MIT)
+**tauri 2.12.7** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-build 2.7.5** (MIT)
+**tauri-build 2.7.6** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-codegen 2.7.5** (MIT)
+**tauri-codegen 2.7.6** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-macros 2.7.5** (MIT)
+**tauri-macros 2.7.6** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-runtime 2.12.3** (MIT)
+**tauri-runtime 2.12.4** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-runtime-wry 2.12.4** (MIT)
+**tauri-runtime-wry 2.12.5** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
-**tauri-utils 2.10.3** (MIT)
+**tauri-utils 2.10.4** (MIT)
 
     Copyright (c) 2017 - Present Tauri Apps Contributors
 
@@ -1351,7 +1371,7 @@ Each crate is used under the licence named after its notice (where several are o
 
     Copyright © 2020-2024 Unicode, Inc.
 
-**wry 0.57.2** (MIT)
+**wry 0.57.3** (MIT)
 
     Copyright (c) 2020-2023 Ngo Iok Ui & Tauri Programme within The Commons Conservancy
 
